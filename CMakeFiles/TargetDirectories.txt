@@ -1,0 +1,3 @@
+/home/ufuk/Documents/yavuzWithC++/libchess/CMakeFiles/rebuild_cache.dir
+/home/ufuk/Documents/yavuzWithC++/libchess/CMakeFiles/edit_cache.dir
+/home/ufuk/Documents/yavuzWithC++/libchess/CMakeFiles/yavuz.dir

@@ -1,0 +1,1 @@
+em++ -I ./src/libchess/ main.cpp ./src/*.cpp -sWASM=1 -sEXPORTED_RUNTIME_METHODS=[ccall,cwrap] -sEXPORTED_FUNCTIONS=[_calcStartConstant,_set_piecePoints,_set_depth,_next,_prev,_selectBest] -std=c++17 -o c.html

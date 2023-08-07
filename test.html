@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script type="text/javascript">
+    const importObject = {
+        module: {
+        },
+        env: {
+          memory: new WebAssembly.Memory({ initial: 256 }),
+        },
+      };
+fetch( './yavuz.wasm' ).then( ( response ) => {
+  return response.arrayBuffer(); // convert stream to ArrayBuffer
+} ).then( ( wasmBuffer ) => {
+  return WebAssembly.instantiate( wasmBuffer, importObject ); // compile and instantiate WASM module
+} ).then( ( { instance, module } ) => {
+    console.log(instance.exports)
+//   console.log( instance.exports.add( 1, 2 ) ); // 3
+} );
+</script>
+<body>
+    <h1>DENEME</h1>
+</body>
+</html>

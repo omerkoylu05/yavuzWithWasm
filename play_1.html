@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>cm-chessboard</title>
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1.0"/>
+    <link rel="stylesheet" href="styles/examples.css"/>
+    <link rel="stylesheet" href="assets/styles/cm-chessboard.css"/>
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script type="module" src="../node_modules/chess.js/dist/esm/chess.js"></script>
+    <!-- <script type="module" src="../src/yavuz/yavuz.js"></script> -->
+</head>
+<body>
+<h1><a href="../">YAVUZ ai play arena!</a></h1>
+<button id="degistir">Degistir</button>
+<button id="undo">Geri Al</button>
+<h2>Example: Input enabled, move validation with chess.js</h2>
+<p>Input enabled for white. <a href="https://github.com/jhlywa/chess.js">chess.js</a> does the validation and answers
+    with random moves.</p>
+<div class="board" id="board"></div>
+<div id="output">
+<div id="options" style="display:none">
+<img src="./assets/images/wQ.png">
+<img src="./assets/images/wR.png">
+<img src="./assets/images/wB.png">
+<img src="./assets/images/wN.png">
+</div></div>
+<!--suppress JSUnresolvedFunction -->
+<script async type="text/javascript" src="../node_modules/jquery/dist/jquery.min.js"></script>
+<script type="text/javaScript">
+let MEMORY={};
+let ready=false;
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+        var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        // canvas: (function() {
+        //   var canvas = document.getElementById('canvas');
+
+        //   // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+        //   // application robust, you may want to override this behavior before shipping!
+        //   // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+        //   canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+        //   return canvas;
+        // })(),
+        // setStatus: function(text) {
+        //   if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+        //   if (text === Module.setStatus.last.text) return;
+        //   var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        //   var now = Date.now();
+        //   if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+        //   Module.setStatus.last.time = now;
+        //   Module.setStatus.last.text = text;
+        //   if (m) {
+        //     text = m[1];
+        //     progressElement.value = parseInt(m[2])*100;
+        //     progressElement.max = parseInt(m[4])*100;
+        //     progressElement.hidden = false;
+        //     spinnerElement.hidden = false;
+        //   } else {
+        //     progressElement.value = null;
+        //     progressElement.max = null;
+        //     progressElement.hidden = true;
+        //     if (!text) spinnerElement.style.display = 'none';
+        //   }
+        //   statusElement.innerHTML = text;
+        // },
+        // totalDependencies: 0,
+        // monitorRunDependencies: function(left) {
+        //   this.totalDependencies = Math.max(this.totalDependencies, left);
+        //   Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        // }
+    //   };
+    //   Module.setStatus('Downloading...');
+    //   window.onerror = function(event) {
+        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+        // Module.setStatus('Exception thrown, see JavaScript console');
+        // spinnerElement.style.display = 'none';
+        // Module.setStatus = function(text) {
+        //   if (text) Module.printErr('[post-exception status] ' + text);
+        // };
+      };
+    //   Module["wasmMemory"]=new WebAssembly.Memory({"initial":TOTAL_MEMORY/WASM_PAGE_SIZE, "maximum" : TOTAL_MEMORY/WASM_PAGE_SIZE});
+
+      let POINTS;
+      let elo=0;
+      let additionPerMove;
+      let checkScore;
+      let checkScoreBase;
+
+      function calcOpponentPoints(pg,apm) {
+            let pgnew={p:[],n:[],b:[],r:[],q:[],k:[]};
+            for(let s=7;s>=0;s--) {
+                        //   console.log(pg[0]);
+                pgnew.p.push(pg.p[s]);
+                pgnew.n.push(pg.n[s]);
+                pgnew.b.push(pg.b[s]);
+                pgnew.r.push(pg.r[s]);
+                pgnew.q.push(pg.q[s]);
+                pgnew.k.push(pg.k[s]);
+            }
+            POINTS=pgnew;
+            
+            let apmnew={p:[],n:[],b:[],r:[],q:[],k:[]};
+            for(let s=7;s>=0;s--) {
+                        //   console.log(pg[0]);
+                apmnew.p.push(apm.p[s]);
+                apmnew.n.push(apm.n[s]);
+                apmnew.b.push(apm.b[s]);
+                apmnew.r.push(apm.r[s]);
+                apmnew.q.push(apm.q[s]);
+                apmnew.k.push(apm.k[s]);
+            }
+            additionPerMove=apmnew;
+                //   array.forEach(element => {
+                //     element.forEach((item)=>ret.push(item));
+                //   });
+        };
+
+      Module.onRuntimeInitialized = function() {
+        console.log("module loaded...");
+        let fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        // let buffer=Module._malloc(fen.length+1);
+        // stringToUTF8(fen,buffer,fen.length+1);
+        // console.log(buffer);
+        // let str=UTF8ToString(buffer,fen.length);
+        // console.log(buffer);
+        // var ptr  = allocate(intArrayFromString(fen), 'i8', ALLOC_NORMAL);
+
+        $.ajax({
+            type: "GET",
+            url: "./23.txt",
+            // url:"./BackupYavuz/ready.txt",
+            dataType: "html",
+            success: function (response,err) {
+                console.log("parameters are loaded...");
+                let elo=response.substr(4,response.indexOf("\n")-4);
+                response=response.substr(response.indexOf("C_CENTERCONTROL"),response.length);
+                let c_centerControl=response.substr(16,response.indexOf("\n")-16);
+                response=response.substr(response.indexOf("C_DEVELOPPIECES"),response.length);
+                let c_developPieces=response.substr(16,response.indexOf("\n")-16);
+                response=response.substr(response.indexOf("C_KINGPROTECTION"),response.length);
+                let c_kingProtection=response.substr(17,response.indexOf("\n")-17);
+                response=response.substr(response.indexOf("C_MATERIALANDSAFETY"),response.length);
+                let c_materialandSafety=response.substr(20,response.indexOf("\n")-20);
+                response=response.substr(response.indexOf("C_ROOKANDPAWNMOVEMENT"),response.length);
+                let c_rookandPawnMovement=response.substr(22,response.indexOf("\n")-22);
+                response=response.substr(response.indexOf("CE_KINGACTIVITY"),response.length);
+                let ce_kingActivity=response.substr(16,response.indexOf("\n")-16);
+                response=response.substr(response.indexOf("CE_KINGPROTECTION"),response.length);
+                let ce_kingProtection=response.substr(18,response.indexOf("\n")-18);
+                response=response.substr(response.indexOf("CE_MATERIALANDSAFETY"),response.length);
+                let ce_materialandSafety=response.substr(21,response.indexOf("\n")-21);
+                response=response.substr(response.indexOf("CE_PASSEDPAWNS"),response.length);
+                let ce_passedPawns=response.substr(15,response.length);
+
+                c_centerControl=parseFloat(c_centerControl);
+                console.log(c_centerControl);
+                c_developPieces=parseFloat(c_developPieces);
+                console.log(c_developPieces);
+                c_kingProtection=parseFloat(c_kingProtection);
+                console.log(c_kingProtection);
+                c_rookandPawnMovement=parseFloat(c_rookandPawnMovement);
+                console.log(c_kingProtection);
+                c_materialandSafety=parseFloat(c_materialandSafety);
+                console.log(c_materialandSafety);
+
+                ce_kingActivity=parseFloat(ce_kingActivity);
+                console.log(ce_kingActivity);
+                ce_kingProtection=parseFloat(ce_kingProtection);
+                console.log(ce_kingProtection);
+                ce_materialandSafety=parseFloat(ce_materialandSafety);
+                console.log(ce_materialandSafety);
+                ce_passedPawns=parseFloat(ce_passedPawns);
+                console.log(ce_passedPawns);
+
+                // response=response.substr(response.indexOf("POINTS"),response.length);
+                // let points=response.substr(7,response.indexOf("\n")-7);
+                // response=response.substr(response.indexOf("ADDITIONPERMOVE"),response.length);
+                // let addPerMove=response.substr(16,response.indexOf("\n")-16);
+                // response=response.substr(response.indexOf("ADDITONPIECE"),response.length);
+                // let addPiecePerMove=response.substr(13,response.indexOf("\n")-13);
+                // response=response.substr(response.indexOf("CHECKSCORE"),response.length);
+                // let checkScore=response.substr(11,response.indexOf("\n")-11);
+                // elo=parseInt(elo);
+                // POINTS=JSON.parse(points);
+                // additionPerMove=JSON.parse(addPerMove);
+                // checkScoreBase=parseFloat(checkScore);
+                // checkScore=parseFloat(checkScore);
+
+                // function flatten(array) {
+                //   let ret=[];
+                //   for(let i=0;i<8;i++) {
+                //       for(let s=7;s>=0;s--) {
+                //           ret.push(array[i][s]);
+                //       }
+                //   }
+                // //   array.forEach(element => {
+                // //     element.forEach((item)=>ret.push(item));
+                // //   });
+                //   return ret;
+                // }
+                
+                // let ppp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let pp=new Float32Array(flatten(POINTS["p"]));
+                // Module.HEAPF32.set(pp,ppp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let rpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let rp=new Float32Array(flatten(POINTS["r"]));
+                // Module.HEAPF32.set(rp,rpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let npp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let np=new Float32Array(flatten(POINTS["n"]));
+                // Module.HEAPF32.set(np,npp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let bpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let bp=new Float32Array(flatten(POINTS["b"]));
+                // Module.HEAPF32.set(bp,bpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let qpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let qp=new Float32Array(flatten(POINTS["q"]));
+                // Module.HEAPF32.set(qp,qpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let kpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let kp=new Float32Array(flatten(POINTS["k"]));
+                // Module.HEAPF32.set(kp,kpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let spArray=[ppp,npp,bpp,rpp,qpp,kpp];
+
+                // console.log(spArray);
+
+                // let buf1=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                // let pointers=new Uint32Array(spArray);
+                // Module.HEAPU32.set(pointers,buf1/Uint32Array.BYTES_PER_ELEMENT);
+
+                // let appp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let app=new Float32Array(flatten(additionPerMove["p"]));
+                // Module.HEAPF32.set(app,appp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let arpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let arp=new Float32Array(flatten(additionPerMove["r"]));
+                // Module.HEAPF32.set(arp,arpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let anpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let anp=new Float32Array(flatten(additionPerMove["n"]));
+                // Module.HEAPF32.set(anp,anpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let abpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let abp=new Float32Array(flatten(additionPerMove["b"]));
+                // Module.HEAPF32.set(abp,abpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let aqpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let aqp=new Float32Array(flatten(additionPerMove["q"]));
+                // Module.HEAPF32.set(aqp,aqpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let akpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let akp=new Float32Array(flatten(additionPerMove["k"]));
+                // Module.HEAPF32.set(akp,akpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let sp2Array=[appp,anpp,abpp,arpp,aqpp,akpp];
+                // console.log(sp2Array);
+
+                // let buf2=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                // let pointers2=new Uint32Array(sp2Array);
+                // Module.HEAPU32.set(pointers2,buf2/Uint32Array.BYTES_PER_ELEMENT);
+
+                // console.log(POINTS);
+                // calcOpponentPoints(POINTS,additionPerMove);
+                // console.log(POINTS);
+                // let oPOINTS=JSON.parse(JSON.stringify(POINTS));
+                // let types=["p","n","b","r","q","k"];
+                // types.forEach(type => {
+                //     for(var i=0;i<8;i++) {
+                //         let temp=oPOINTS[type][i];
+                //         oPOINTS[type][i]=oPOINTS[type][7-i];
+                //         oPOINTS[type][7-i]=temp;
+                //     }
+                // });
+                // let oadditionPerMove=JSON.parse(JSON.stringify(additionPerMove));
+                // types.forEach(type => {
+                //     for(var i=0;i<8;i++) {
+                //         let temp=oadditionPerMove[type][i];
+                //         oadditionPerMove[type][i]=oadditionPerMove[type][7-i];
+                //         oadditionPerMove[type][7-i]=temp;
+                //     }
+                // });
+                // let oppp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let opp=new Float32Array(flatten(oPOINTS["p"]));
+                // Module.HEAPF32.set(opp,oppp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let orpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let orp=new Float32Array(flatten(oPOINTS["r"]));
+                // Module.HEAPF32.set(orp,orpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let onpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let onp=new Float32Array(flatten(oPOINTS["n"]));
+                // Module.HEAPF32.set(onp,onpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let obpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let obp=new Float32Array(flatten(oPOINTS["b"]));
+                // Module.HEAPF32.set(obp,obpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oqpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oqp=new Float32Array(flatten(oPOINTS["q"]));
+                // Module.HEAPF32.set(oqp,oqpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let okpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let okp=new Float32Array(flatten(oPOINTS["k"]));
+                // Module.HEAPF32.set(okp,okpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let ospArray=[oppp,onpp,obpp,orpp,oqpp,okpp];
+                
+                // console.log(ospArray);
+
+                // let buf3=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                // let pointers3=new Uint32Array(ospArray);
+                // Module.HEAPU32.set(pointers3,buf3/Uint32Array.BYTES_PER_ELEMENT);
+
+                // let oappp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oapp=new Float32Array(flatten(oadditionPerMove["p"]));
+                // Module.HEAPF32.set(oapp,oappp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oarpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oarp=new Float32Array(flatten(oadditionPerMove["r"]));
+                // Module.HEAPF32.set(oarp,oarpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oanpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oanp=new Float32Array(flatten(oadditionPerMove["n"]));
+                // Module.HEAPF32.set(oanp,oanpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oabpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oabp=new Float32Array(flatten(oadditionPerMove["b"]));
+                // Module.HEAPF32.set(oabp,oabpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oaqpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oaqp=new Float32Array(flatten(oadditionPerMove["q"]));
+                // Module.HEAPF32.set(oaqp,oaqpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let oakpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                // let oakp=new Float32Array(flatten(oadditionPerMove["k"]));
+                // Module.HEAPF32.set(oakp,oakpp/Float32Array.BYTES_PER_ELEMENT);
+
+                // let ospArray2=[oappp,oanpp,oabpp,oarpp,oaqpp,oakpp];
+                // console.log(ospArray2);
+
+                // let buf4=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                // let pointers4=new Uint32Array(ospArray2);
+                // Module.HEAPU32.set(pointers4,buf4/Uint32Array.BYTES_PER_ELEMENT);
+                // let r=Module._set_piecePoints(buf1,buf2,buf3,buf4);
+                // console.log(buf1);
+                // console.log(r);
+                /**
+                 *   void set_Coefs(float centerControl,float developPieces, float kingProtection, float materialandSafety, float rookandPawnMovement,
+    float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) **/
+
+                Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
+                Module._set_depth(3);
+                console.log("ready...");
+                ready=true;
+                $.ajax({
+                    type:"GET",
+                    url:"./memory/memory.json",
+                    dataType:"json",
+                    success:function (response,err) { 
+                        MEMORY=response;
+                        console.log(MEMORY);
+                        Module._set_depth(5);
+                        ready=true;
+                        }
+                    });
+                // let getpp=Module.ccall("get_points","number",["number"],[5]);
+                // var array = new Float32Array(64)
+                // var pos = getpp / Float32Array.BYTES_PER_ELEMENT;
+                // array.set(Module.HEAPF32.subarray(pos, pos + 64))
+                
+                // console.log(array);
+                
+            },
+            error:function (err) {
+                console.log(err);
+            }
+        });
+      }
+</script>
+<script type="module">
+import {INPUT_EVENT_TYPE, COLOR, Chessboard, MARKER_TYPE} from "./src/cm-chessboard/Chessboard.js"
+import {Chess} from "../node_modules/chess.js/dist/esm/chess.js";
+    //   var statusElement = document.getElementById('status');
+    //   var progressElement = document.getElementById('progress');
+    //   var spinnerElement = document.getElementById('spinner');
+
+function Yavuz(idx,game,color) {
+    this.game=game;
+    // console.log(this.fen);
+    this.idx=idx;
+    this.init();
+    this.fens={};
+    this.color=color;
+    }
+    
+    Yavuz.prototype = {
+        
+        init: function () {
+            this.elo=1000;
+            this.depth=3;
+            this.columns=["1","2","3","4","5","6","7","8"]
+            this.rows=["a","b","c","d","e","f","g","h"]
+            this.types=["p","r","n","b","q","k"]
+            this.movetree=Array();
+            this.decisiontree=Array();
+            this.points={}
+            this.pointsGame={};
+            this.actualMoves=[];
+            this.additionPerMove={};
+            this.WINNER=false;
+            this.DRAW=false;
+            this.LOSER=false;
+            this.opponent=this.color=="w"?"b":"w";
+            this.checkScoreBase=Math.random();
+            this.checkScore=this.checkScoreBase;
+            this.checkMateScore=this.checkScore*2;
+            this.additionCheckScore=Math.random();
+            this.types.forEach((type)=>{
+                var cellPoints=[];
+                var valPerMoves=[]
+                for(var s=0;s<8;s++) {
+                    var rowPoints=[];
+                    var rowMovePoints=[]
+                    for (var i=0;i<8;i++) {
+                        rowPoints.push(Math.random());
+                        rowMovePoints.push(Math.random());
+                        }
+                    cellPoints.push(rowPoints);
+                    valPerMoves.push(rowMovePoints);
+                }
+                this.points[type]=cellPoints;
+                this.additionPerMove[type]=valPerMoves;
+            });
+            this.pointsGame=JSON.parse(JSON.stringify(this.points));
+            // console.log(this.points);
+            // this.pointsGame["b"][0][0]=5.0;
+            // console.log(this.points);
+            this.piecePoints={p:0.100,r:0.500,n:0.320,b:0.330,k:2.0,q:0.900};
+            this.pieceAdditionPerMove={p:Math.random(),r:Math.random(),n:Math.random(),b:Math.random(),k:Math.random(),q:Math.random()};
+            // this.gpu=new GPU();
+        },
+
+        updateWeights: function () {
+            
+            function flatten(array) {
+                  let ret=[];
+                  for(let i=0;i<8;i++) {
+                      for(let s=7;s>=0;s--) {
+                          ret.push(array[i][s]);
+                      }
+                  }
+            };
+            let ppp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let pp=new Float32Array(flatten(this.pointsGame["p"]));
+                Module.HEAPF32.set(pp,ppp/Float32Array.BYTES_PER_ELEMENT);
+
+                let rpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let rp=new Float32Array(flatten(this.pointsGame["r"]));
+                Module.HEAPF32.set(rp,rpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let npp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let np=new Float32Array(flatten(this.pointsGame["n"]));
+                Module.HEAPF32.set(np,npp/Float32Array.BYTES_PER_ELEMENT);
+
+                let bpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let bp=new Float32Array(flatten(this.pointsGame["b"]));
+                Module.HEAPF32.set(bp,bpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let qpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let qp=new Float32Array(flatten(this.pointsGame["q"]));
+                Module.HEAPF32.set(qp,qpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let kpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let kp=new Float32Array(flatten(this.pointsGame["k"]));
+                Module.HEAPF32.set(kp,kpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let spArray=[ppp,npp,bpp,rpp,qpp,kpp];
+
+                console.log(spArray);
+
+                let buf1=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                let pointers=new Uint32Array(spArray);
+                Module.HEAPU32.set(pointers,buf1/Uint32Array.BYTES_PER_ELEMENT);
+
+                let appp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let app=new Float32Array(flatten(this.additionPerMove["p"]));
+                Module.HEAPF32.set(app,appp/Float32Array.BYTES_PER_ELEMENT);
+
+                let arpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let arp=new Float32Array(flatten(this.additionPerMove["r"]));
+                Module.HEAPF32.set(arp,arpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let anpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let anp=new Float32Array(flatten(this.additionPerMove["n"]));
+                Module.HEAPF32.set(anp,anpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let abpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let abp=new Float32Array(flatten(this.additionPerMove["b"]));
+                Module.HEAPF32.set(abp,abpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let aqpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let aqp=new Float32Array(flatten(this.additionPerMove["q"]));
+                Module.HEAPF32.set(aqp,aqpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let akpp=Module._malloc(64*Float32Array.BYTES_PER_ELEMENT);
+                let akp=new Float32Array(flatten(this.additionPerMove["k"]));
+                Module.HEAPF32.set(akp,akpp/Float32Array.BYTES_PER_ELEMENT);
+
+                let sp2Array=[appp,anpp,abpp,arpp,aqpp,akpp];
+                console.log(sp2Array);
+
+                let buf2=Module._malloc(6*Uint32Array.BYTES_PER_ELEMENT);
+                let pointers2=new Uint32Array(sp2Array);
+                Module.HEAPU32.set(pointers2,buf2/Uint32Array.BYTES_PER_ELEMENT);
+
+                let r=Module._set_piecePoints(buf1,buf2);
+                console.log(buf1);
+                console.log(r);
+                console.log("ready...");
+
+        },
+
+        historToPGN: function(history) {
+            let pgn="";
+            history.forEach((m,index)=>{
+                if ((index+1)%2==1) {
+                    pgn+=Math.ceil((index+1)/2).toString()+"."+m;
+                } else {
+                    pgn+=" "+m+" ";
+                }
+            });
+            return pgn;
+        },
+
+        prepareMemJSON: function (history) {
+            let memData={};
+            let g=new Chess();
+            history.forEach((m)=>{
+                memData[g.fen().substr(0,g.fen().indexOf(" "))]=m;
+                g.move(m);
+            });
+            return memData;
+        },
+
+        updateMemory: function (result) {
+            if (this.color=="w") {
+                if (this.WINNER==true) {
+                    result="1-0";
+                }
+                if (this.LOSER==true) {
+                    result="0-1";
+                }
+                if (this.DRAW==true) {
+                    result="1/2-1/2";
+                }
+            }
+            if (this.color=="b") {
+                if (this.WINNER==true) {
+                    result="0-1";
+                }
+                if (this.LOSER==true) {
+                    result="1-0";
+                }
+                if (this.DRAW==true) {
+                    result="1/2-1/2";
+                }
+            }
+
+            let memData=this.prepareMemJSON(this.game.history());
+
+            let data={  "memData":JSON.stringify(memData),
+                        "result":result,
+                        };
+
+            console.log(data);
+            console.log("updating memory...");
+
+            $.ajax({
+                type: "POST",
+                url: "./updateMem.php",
+                data: data,
+                success: function (response) {
+                    console.log(response);
+                }
+            });
+
+        },
+        // resetPoints: function() {
+        //     this.types.forEach((type)=>{
+        //         for(row=0;row<8;row++) {
+        //             for(col=0;col<8;col++) {
+        //                 this.pointsGame[type][row][col]=this.points[type][row][col];
+        //             }
+        //         }
+        //     })
+        // },
+
+        sigmoid:function (t) {
+            return 1/(1+Math.pow(Math.E, -t));
+        },
+    
+        inverseSigmoid: function (t) {
+            return Math.log(t/(1-t));
+        },
+
+        inversePoints: function () {
+            // console.log(this.pointsGame);
+            Object.keys(this.pointsGame).forEach((k) => {
+                // console.log();
+                var reversed = this.pointsGame[k].map(function reverse(item) {
+                    return Array.isArray(item) && Array.isArray(item[0]) 
+                               ? item.map(reverse) 
+                               : item.reverse();
+                });
+                this.pointsGame[k]=reversed;
+            });
+            Object.keys(this.additionPerMove).forEach((k) => {
+                // console.log();
+                var reversed = this.additionPerMove[k].map(function reverse(item) {
+                    return Array.isArray(item) && Array.isArray(item[0]) 
+                               ? item.map(reverse) 
+                               : item.reverse();
+                });
+                this.additionPerMove[k]=reversed;
+            });
+            console.log(this.pointsGame);
+        },
+
+        calculateBest: function(gm=this.game,color=this.color) {
+            var value=0;
+            var maxGain=-1000000;
+            var bestMove="";
+            gm.moves().forEach((m)=> {
+                    var tempGame=new Chess(gm.fen());
+                    tempGame.move(m);
+                    if (tempGame.turn()==this.opponent) {
+                        // if (tempGame.in_check()) value=this.checkScore;
+                        if (tempGame.isCheckmate()) value=Number.POSITIVE_INFINITY;
+                    }
+                    if (tempGame.turn()==this.color) {
+                        // if (tempGame.in_check()) value=-this.checkScore;
+                        if (tempGame.isCheckmate()) value=Number.NEGATIVE_INFINITY;
+                    }
+                    var col=0;
+                    this.pointsGame.p.forEach((rowPoints)=>{
+                        var row=0;
+                        rowPoints.forEach((point)=>{
+                            var piece=tempGame.get(this.rows[row]+this.columns[col]);
+                            if (piece!=null) {
+                                if (piece.color==color) {
+                                    value+=this.piecePoints[piece.type]*this.pointsGame[piece.type][row][col];
+                                } 
+                                else {
+                                    value-=this.piecePoints[piece.type]*this.pointsGame[piece.type][row][col];
+                                }
+                            }
+                            row++;
+                        });
+                        col++;
+                    });
+                    if (value>maxGain) {
+                        maxGain=value;
+                        bestMove=m;
+                    }
+                }
+            );
+            return {gain:maxGain,move:bestMove};
+        },
+        calcGain: function(move,fen,gm=this.game,color=this.color) {
+                var value=0;
+                var tempGame=new Chess(gm.fen());
+                if (tempGame.turn()==this.opponent) {
+                    if (tempGame.isCheckmate()) {
+                        value=Number.POSITIVE_INFINITY; 
+                        return value;
+                    }
+                }
+                if (tempGame.turn()==this.color) {
+                    if (tempGame.isCheckmate()) {
+                        value=Number.NEGATIVE_INFINITY; 
+                        return value;
+                    } 
+                }
+                // console.log(MEMORY[fen]);
+                // if (MEMORY[this.fen]!==undefined) {
+                //         if (MEMORY[this.fen][move]!==undefined) {
+                //             console.log("move found");
+                //             value+=MEMORY[this.fen][move];
+                //         }
+                //     }  else {
+                var col=0;
+                this.pointsGame.p.forEach((rowPoints)=>{
+                var row=0;
+                rowPoints.forEach((point)=>{
+                    var piece=tempGame.get(this.rows[row]+this.columns[col]);
+                    if (piece!=null) {
+                        if (piece.color==color) {
+                            value+=this.piecePoints[piece.type]*this.pointsGame[piece.type][row][col];
+                        } else {
+                            value-=this.piecePoints[piece.type]*this.pointsGame[piece.type][row][col];
+                        }
+                    }
+                    row++;
+                });
+                col++;
+                });
+                    // }
+                // tempGame.move(move);
+                // let moves=tempGame.moves();
+                // let kMoves=0;
+                // moves.forEach(m=>{
+                //     if (m.indexOf("k")!=-1||m.indexOf("K")!=-1) {
+                //         kMoves++;
+                //     }
+                // })
+                // value-=(kMoves/8);
+                return value;
+        },
+        getDim:function(a) {
+            var dim = [];
+            for (;;) {
+                dim.push(a.length);
+
+                if (Array.isArray(a[0])) {
+                    a = a[0];
+                } else {
+                    break;
+                }
+            }
+            return dim;
+        },
+        selectMove:function(changeDepth=0) {
+            // let depth=this.depth+1;
+            // let tr=[...this.movetree];
+            // console.log(this.getDim(tr));
+            // let depth=this.depth;
+            // while(true) {
+            //     this.reduceMoveTreeMaxMin();
+            //     let tree=[...this.movetree];
+            //     if (this.getDim(tree).length==1) break;
+            // }
+            let notoSelect=[];
+            if (MEMORY[this.fen]!=undefined) {
+                let points=[]
+                    Object.keys(MEMORY[this.fen]).forEach((move)=>{
+                    if (MEMORY[this.fen][move]<0) notoSelect.push(move);
+                    points.push(MEMORY[this.fen][move]);
+                    console.log(notoSelect);
+                });
+                let max=points.reduce(function(a, b) {
+                    return Math.max(a, b);
+                    }, Number.NEGATIVE_INFINITY);
+                    this.actualMoves=this.game.moves();
+                    let MemMoves=Object.keys(MEMORY[this.fen])
+                    console.log(MEMORY[this.fen]);
+                    let selected=false;
+                    let val = points.reduce(function(a, b) {
+                        return Math.max(a, b);
+                        }, Number.NEGATIVE_INFINITY);
+                    while(!selected&&val>0) {
+                        let m=MemMoves[points.indexOf(val)];
+                        if (this.actualMoves.indexOf(m)!=-1) {
+                            selected=true;
+                            return m;
+                            break;
+                        }
+                        else {
+                            points.splice(points.indexOf(val),1);
+                            MemMoves.splice(points.indexOf(val),1);
+                        }
+                    }
+                    
+                    // console.log(val);
+                    this.movetree=[];
+
+                    for(let i=0;i<changeDepth;i++) {
+                        if (this.actualMoves.length>1) {
+                            this.actualMoves.splice(points.indexOf(val),1);
+                            points.splice(points.indexOf(val),1);
+                            val=points.reduce(function(a, b) {
+                            return Math.max(a, b);
+                            }, Number.NEGATIVE_INFINITY);
+                        } else {
+                            break;
+                        }
+                    }
+                    if (this.actualMoves.length>=1&&val>=0) return this.actualMoves[points.indexOf(val)];
+                    else {
+                        // this.calcMoves();
+                        let m=Module.ccall("selectBest","string",["string"],[this.game.fen()]);
+                        return m;
+                        }
+            }
+            let treeTemp=[...this.movetree];
+            // console.log("points length:",treeTemp.length);
+            this.actualMoves=this.game.moves();
+            // console.log("moves length:",this.actualMoves.length);
+            this.actualMoves.forEach((m,idx)=>{
+                // if (m.indexOf("+")!=-1) {
+                //     treeTemp[idx]+=this.checkScore;
+                //     // this.checkScore*=2;
+                //     }
+                if (m.indexOf("#")!=-1) treeTemp[idx]=Number.POSITIVE_INFINITY;
+            });
+            // console.log(tree);
+            let val = treeTemp.reduce(function(a, b) {
+                return Math.max(a, b);
+            }, Number.NEGATIVE_INFINITY);
+            console.log(val);
+            this.movetree=[];
+
+            for(let i=0;i<changeDepth;i++) {
+                if (this.actualMoves.length>1) {
+                    this.actualMoves.splice(treeTemp.indexOf(val),1);
+                    treeTemp.splice(treeTemp.indexOf(val),1);
+                    val=treeTemp.reduce(function(a, b) {
+                    return Math.max(a, b);
+                    }, Number.NEGATIVE_INFINITY);
+                } else {
+                    break;
+                }
+            }
+
+            while (notoSelect.indexOf(this.actualMoves[treeTemp.indexOf(val)])!=-1) {
+                console.log("notoselect run...");
+                if (this.actualMoves.length>1) {
+                    this.actualMoves.splice(treeTemp.indexOf(val),1);
+                    treeTemp.splice(treeTemp.indexOf(val),1);
+                    val=treeTemp.reduce(function(a, b) {
+                    return Math.max(a, b);
+                    }, Number.NEGATIVE_INFINITY);
+                } else {
+                    break;
+                }
+            }
+
+            return this.actualMoves[treeTemp.indexOf(val)];
+        },
+        reduceMoveTreeMaxMin: function(depth=this.depth,tree=this.movetree,parent=[this.movetree]) {
+            // if (depth>=0) {
+            // let c=true;
+            let x=[...tree];
+            if (this.getDim(x).length>1) {
+                tree.forEach((item,idx)=>{
+                    if (Array.isArray(item)) {
+                        let a=[...item];
+                        if (this.getDim(a).length>1) {
+                            this.reduceMoveTreeMaxMin(depth-1,item,tree[idx]);
+                        } else {
+                            let val;
+                            if (depth%2==1) {
+                                // item.forEach((i,idx)=>{
+                                //     if (!i) item[idx]=Number.NEGATIVE_INFINITY;
+                                // });
+                                val = item.reduce(function(a, b) {
+                                    return Math.max(a, b);
+                                }, Number.NEGATIVE_INFINITY);
+                            }
+                            if (depth%2==0) {
+                                // item.forEach((i,idx)=>{
+                                //     if (!i) item[idx]=Number.POSITIVE_INFINITY;
+                                // });
+                                val = item.reduce(function(a, b) {
+                                    return Math.min(a, b);
+                                }, Number.POSITIVE_INFINITY);
+                            }
+                            tree[idx]=val;
+                        }   
+                    }
+                    });
+            }
+            // }
+        },
+        minMax:function(node=this.game, depth, isMaximizingPlayer, alpha, beta, move, fen) {
+            let tempGame=new Chess(node.fen());
+            if (depth==0)
+                return this.calcGain(move,fen,tempGame);
+
+            if (isMaximizingPlayer) {
+                let bestVal = Number.NEGATIVE_INFINITY; 
+                let moves=tempGame.moves();
+                moves.forEach((m)=>{
+                    let f=tempGame.fen();
+                    tempGame.move(m);
+                    let value = this.minMax(tempGame, depth-1, false, alpha, beta,m,f);
+                    bestVal = Math.max( bestVal, value); 
+                    if (bestVal>=beta)
+                        return;
+                    alpha = Math.max( alpha, bestVal);
+                    tempGame.load(f);
+                    // if (beta <= alpha) return;
+                });
+                return bestVal
+            } else {
+                let bestVal = Number.POSITIVE_INFINITY; 
+                let moves=tempGame.moves();
+                moves.forEach((m)=>{
+                    let f=tempGame.fen();
+                    tempGame.move(m);
+                    let value = this.minMax(tempGame, depth-1, true, alpha, beta,m,f);
+                    bestVal = Math.min( bestVal, value);
+                    if (bestVal<=alpha)
+                        return;
+                    beta = Math.min( beta, bestVal);
+                    tempGame.load(f);
+                    // if (beta <= alpha) return;
+                });
+                    return bestVal
+            }
+        },
+        calcMoves: function(depth=this.depth, gm=this.game, tree=this.movetree) {
+            // if (depth>=0) {
+            //     let tempGame=new Chess(gm.fen());
+            //     // console.log(tempGame.ascii());
+            //     /**
+            //      * MINMAX rule 
+            //      * first layer is max
+            //      * 
+            //      */
+            //         let moves=tempGame.moves();
+            //         // if (depth==this.depth) this.actualMoves=[...moves];
+            //         // console.log(moves);
+            //         // console.log(moves.length);
+            //         moves.forEach((move,idx)=>{
+
+            //             let tempGame2=new Chess(tempGame.fen());
+            //             let fen=tempGame2.fen();
+            //             // console.log(fen);
+            //             tempGame2.move(move);
+            //             // console.log(tempGame2.fen());
+            //             // let increase=move.indexOf("x")!=-1?true:false;
+            //             // let increase=false;
+            //             // if (tempGame.isGameOver()()) tree[idx]=100000;
+            //             if (tree.length<idx+1) {
+            //                 tree.push([]);
+            //             }
+
+            //             if (tempGame2.isCheckmate()) {
+            //                 let item=tree[idx];
+            //                 for(let i=(this.depth-depth);i<this.depth-1;i++) {
+            //                     item.push([]);
+            //                     item=item[0];
+            //                 }
+            //                 item=this.calcGain(move,fen,tempGame2,this.color);
+            //             }
+
+            //             if (depth==0) {
+            //                 tree[idx]=this.calcGain(move,fen,tempGame2,this.color);
+            //             }
+            //             // this.movetree.push(tree);
+            //             // console.log(this.movetree);
+            //             this.calcMoves(depth-1,tempGame2,tree[idx]);
+            //             // if (tempGame.isCheckmate()) {
+            //             //     gain=100000;
+            //             //     gains.push(gain);
+            //             //     // break;
+            //             // }
+            //             // return this.movetree;
+            //         });
+            // }
+                let tempGame=new Chess(gm.fen());
+                let moves=tempGame.moves();
+                moves.forEach((m,idx)=> {
+                let f=tempGame.fen();
+                tempGame.move(m);
+                let val=this.minMax(tempGame,depth-1,false,Number.NEGATIVE_INFINITY,Number.POSITIVE_INFINITY,m,f);
+                tempGame.load(f);
+                if (tree.length<idx+1) tree.push(val);
+                });
+        },
+        checkAndUpdateMem: function () {
+            if (this.game.isCheckmate()&&this.game.turn()==this.color) {
+                this.WINNER=false;
+                this.LOSER=true;
+                this.DRAW=false;
+                console.log("I LOSED :(");
+                // if (this.color=="w") {
+                //     // ais[this.game.plb].WINNER=true;
+                //     // console.log("WINNER:",this.game.plb,"GAME:",games.indexOf(this.game));
+                //     // document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>BLACK WINS</b>";
+                // }
+                // if (this.color=="b") {
+                //     // ais[this.game.plw].WINNER=true;
+                //     // console.log("WINNER:",this.game.plw,"GAME:",games.indexOf(this.game));
+                //     // document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>WHITE WINS</b>";
+                // }
+                // console.log("LOSER:",this.idx,"GAME:",games.indexOf(this.game));
+                // fin[games.indexOf(this.game)]=true;
+                // if (this.game.isGameOver()()) {
+                // clearInterval(this.game.thread);
+                this.updateMemory();
+                return;
+                // }
+            } else if (this.game.isCheckmate()&&this.game.turn()==this.opponent) {
+                this.WINNER=true;
+                this.LOSER=false;
+                this.DRAW=false;
+                console.log("I WIN :D");
+                // if (this.color=="w") {
+                //     ais[this.game.plb].LOSER=true;
+                //     document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>WHITE WINS</b>";
+                // }
+                // if (this.color=="b") {
+                //     ais[this.game.plw].LOSER=true;
+                //     document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>BLACK WINS</b>";
+                // }
+                // console.log("WINNER:",this.idx,"GAME:",games.indexOf(this.game));
+                // // document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>WHITE WINS</b>";
+                // fin[games.indexOf(this.game)]=true;
+                // clearInterval(this.game.thread);
+                this.updateMemory();
+                return;
+
+            } else if (this.game.in_draw()||this.game.in_stalemate()||this.game.in_threefold_repetition()) {
+                this.WINNER=false;
+                this.LOSER=false;
+                this.DRAW=true;
+                console.log("DRAW :|")
+                // if (this.color=="w") {
+                //     ais[this.game.plb].DRAW=true;
+                // }
+                // if (this.color=="b") {
+                //     ais[this.game.plw].DRAW=true;
+                // }
+                // console.log("DRAWN:",this.idx,"GAME:",games.indexOf(this.game));
+                // document.getElementById("info"+games.indexOf(this.game).toString()).innerHTML="<b>DRAW</b>";
+                // fin[games.indexOf(this.game)]=true;
+                // clearInterval(this.game.thread);
+
+                this.updateMemory();
+                return;
+
+            }
+        },
+
+        altMakeMove:function () {
+            let m=Module.ccall("selectBest","string",["string"],[this.game.fen()]);
+        },
+
+        makeMove: function() {
+            // let r=this.minMax(this.game,this.depth,true,Number.NEGATIVE_INFINITY,Number.POSITIVE_INFINITY)
+            // console.log(r);
+            this.fen=this.game.fen();
+            let idx=this.fen.indexOf(" b ");
+            if (idx==-1) idx=this.fen.indexOf(" w ");
+            this.fen=this.fen.substr(0,idx);
+            // if (this.fen.indexOf("KQkq")!=-1) {
+            if (this.fens[this.fen]!=undefined) this.fens[this.fen]++;
+            else {
+                this.fens[this.fen]=0;
+            }
+            if (!this.game.isGameOver()&&this.game.turn()==this.color) {
+                console.log(MEMORY[this.fen]);
+                console.log(this.fen);
+                console.log(MEMORY);
+                if (MEMORY[this.fen]==undefined) {
+                    console.log(this.game.fen());
+                    let m=Module.ccall("selectBest","string",["string"],[this.game.fen()]);
+                    let mdata={from:m.substring(0,2),to:m.substring(2,4)};
+                    if (m.charAt(4)!=-1) mdata.promotion=m.charAt(4);
+                    let x=this.game.move(mdata);
+                    // Module._next();
+                    console.log(mdata);
+                    console.log(x);
+                } else {
+                console.log(this.movetree);
+    
+                let m=this.selectMove(this.fens[this.fen]);
+                console.log(m);
+
+                // console.log(this.movetree);
+                if (m==undefined) {
+                    this.DRAW=true;
+                    if (this.color=="w") {
+                        ais[this.game.plb].DRAW=true;
+                    }
+                    if (this.color=="b") {
+                        ais[this.game.plw].DRAW=true;
+                    }
+                    fin[games.indexOf(this.game)]=true;
+                    clearInterval(this.game.thread);
+                    console.log("GAME ERROR:",games.indexOf(this.game),"PLAYER:",this.idx);
+                    document.getElementById("info"+games.indexOf(this.game)).innerHTML="ERROR";
+                } else {
+                    console.log(m);
+                    // if (m.indexOf("+")!=-1) this.checkScore*=2;
+                    let x=this.game.move(m);
+                    if (!x) {
+                    let mdata={from:m.substring(0,2),to:m.substring(2,4)};
+                    if (m.charAt(4)!=-1) mdata.promotion=m.charAt(4);
+                    this.game.move(mdata);
+                    // Module._next();
+                    }
+
+                    }
+                    console.log(this.historToPGN(this.game.history()));
+
+                    this.types.forEach((type) => {
+                        for (var row=0;row<8;row++) {
+                            for(var col=0;col<8;col++) {
+                                let val=this.pointsGame[type][row][col];
+                                this.pointsGame[type][row][col]=Math.sin(Math.asin(val)+this.additionPerMove[type][row][col]);
+                            }
+                        } 
+                        // this.piecePoints[type]+=this.pieceAdditionPerMove[type];
+                        // this.checkScore+=this.checkScoreBase;
+                    });
+                }
+                } else {
+                    this.checkAndUpdateMem();
+                }
+                Module._next();
+            }
+        }
+        
+    const chess = new Chess();
+    console.log(chess.fen().substr(0,chess.fen().indexOf(" ")));
+    const yavuz= new Yavuz(0,chess,"w");
+    // console.log(chess.turn());
+    if (chess.turn()==yavuz.color) {
+        let i=setInterval(function(){
+        console.log("testing...");
+        if (ready) {
+            let sConst=Module.ccall("calcStartConstant","number",["string"],[yavuz.game.fen()]);
+            console.log(sConst);
+            yavuz.makeMove();
+            board.enableMoveInput(inputHandler, inpHandler);
+            board.setPosition(chess.fen());
+            clearInterval(i);
+        }
+    },100)
+}
+    // $.ajax({
+    //         type: "GET",
+    //         url: "./BackupYavuz/bests/17.txt",
+    //         // url:"./BackupYavuz/ready.txt",
+    //         dataType: "html",
+    //         success: function (response,err) {
+    //             let elo=response.substr(4,response.indexOf("\n")-4);
+    //             response=response.substr(response.indexOf("POINTS"),response.length);
+    //             let points=response.substr(7,response.indexOf("\n")-7);
+    //             response=response.substr(response.indexOf("ADDITIONPERMOVE"),response.length);
+    //             let addPerMove=response.substr(16,response.indexOf("\n")-16);
+    //             response=response.substr(response.indexOf("ADDITONPIECE"),response.length);
+    //             let addPiecePerMove=response.substr(13,response.indexOf("\n")-13);
+    //             response=response.substr(response.indexOf("CHECKSCORE"),response.length);
+    //             let checkScore=response.substr(11,response.indexOf("\n")-11);
+    //             yavuz.elo=parseInt(elo);
+    //             yavuz.points=JSON.parse(points);
+    //             yavuz.pointsGame=JSON.parse(JSON.stringify(yavuz.points));
+    //             yavuz.additionPerMove=JSON.parse(addPerMove);
+    //             yavuz.pieceAdditionPerMove={p:0.1,r:0.5,n:0.3,b:0.3,k:0.0,q:0.9};
+    //             // yavuz.pieceAdditionPerMove=JSON.parse(addPiecePerMove);
+    //             // console.log(plw.pieceAdditionPerMove["b"]);
+    //             yavuz.checkScoreBase=parseFloat(checkScore);
+    //             yavuz.checkScore=parseFloat(checkScore);
+    //             // console.log(addPerMove);
+    //             // compinit1=true;
+    //             // $.ajax({
+    //             //     type:"GET",
+    //             //     url:"./memory/memory.json",
+    //             //     dataType:"json",
+    //             //     success:function (response,err) { 
+    //             //         MEMORY=response;
+    //             //         // console.log(MEMORY);
+
+    //                     yavuz.makeMove();
+    //                     board.setPosition(chess.fen());
+    //                 //     }
+    //                 // });
+    //                 // yavuz.makeMove();
+    //                 // board.setPosition(chess.fen());
+    //         },
+    //         error:function (err) {
+                
+    //         }
+    //     });
+    let inpHandler=COLOR.black;
+    let errMove;
+
+    function inputHandler(event) {
+        // console.log("event", event)
+        event.chessboard.removeMarkers(undefined, MARKER_TYPE.dot)
+        event.chessboard.removeMarkers(undefined, MARKER_TYPE.square)
+        if (event.type === INPUT_EVENT_TYPE.moveStart) {
+            const moves = chess.moves({square: event.square, verbose: true});
+            event.chessboard.addMarker(event.square, MARKER_TYPE.square)
+            for (const move of moves) { // draw dots on possible moves
+                event.chessboard.addMarker(move.to, MARKER_TYPE.dot)
+            }
+            return moves.length > 0
+        } else if (event.type === INPUT_EVENT_TYPE.moveDone) {
+            let result=false;
+            const move = {from: event.squareFrom, to: event.squareTo}
+            try {
+            result = chess.move(move);
+            } catch (e) {
+                console.log(e);
+            }
+            if (result) {
+                event.chessboard.disableMoveInput()
+                event.chessboard.setPosition(chess.fen())
+                const possibleMoves = chess.moves({verbose: true})
+                if (possibleMoves.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * possibleMoves.length)
+                    const randomMove = possibleMoves[randomIndex]
+                    setTimeout(() => { // smoother with 500ms delay
+                        if (chess.turn()==yavuz.color) yavuz.makeMove();
+                        event.chessboard.enableMoveInput(inputHandler, inpHandler);
+                        event.chessboard.setPosition(chess.fen());
+                    }, 500)
+                } else {
+                    if (chess.isGameOver()) yavuz.checkAndUpdateMem(); //last time
+                    console.log("makeMove son kez çağırıldı");
+                }
+            } else {
+                // console.log(chess.fen());
+                // console.warn("invalid move", move);
+                let piece=chess.get(move.from);
+                if (piece.type=="p") {
+                    if (move.to.indexOf("8")!=-1||move.to.indexOf("1")!=-1) {
+                        let options=document.getElementById("options");
+                        options.innerHTML="";
+                        let types=["Q","R","B","N"];
+                        types.forEach((type)=>{
+                            let img=document.createElement("img");
+                            img.src="./assets/images/"+yavuz.color+type+".png";
+                            options.appendChild(img);
+                            img.onclick=function() {
+                                Promote(type);
+                            }
+                        });
+                        options.style.display="block";
+                    }
+                    errMove=move;
+                }
+            }
+            return result
+        }
+    }
+
+    const board = new Chessboard(document.getElementById("board"), {
+        position: chess.fen(),
+        sprite: {url: "./assets/images/chessboard-sprite-staunty.svg"},
+        style: {moveFromMarker: undefined, moveToMarker: undefined}, // disable standard markers
+        orientation: COLOR.black
+    });
+
+
+    function Promote(type) {
+        const moves=chess.moves();
+        moves.forEach(move => {
+            if (move.indexOf(errMove.to)!=-1&&move.indexOf("="+type)!=-1) {
+                const result = chess.move(move);
+            if (result) {
+                board.disableMoveInput()
+                board.setPosition(chess.fen())
+                const possibleMoves = chess.moves({verbose: true})
+                if (possibleMoves.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * possibleMoves.length)
+                    const randomMove = possibleMoves[randomIndex]
+                    setTimeout(() => { // smoother with 500ms delay
+                        if (chess.turn()==yavuz.color) yavuz.makeMove();
+                        board.enableMoveInput(inputHandler, inpHandler);
+                        board.setPosition(chess.fen())
+                    }, 500)
+                    }
+                }
+                document.getElementById("options").style.display="none";
+                return;
+            }
+        });
+    }
+    function changeSide() {
+        yavuz.color=="w"?yavuz.color="b":yavuz.color="w";
+        yavuz.color=="w"?yavuz.opponent="b":yavuz.opponent="w";
+        console.log(yavuz.opponent);
+        board.setOrientation(yavuz.opponent);
+        inpHandler==COLOR.white?inpHandler=COLOR.black:inpHandler=COLOR.white;
+        board.enableMoveInput(inputHandler, inpHandler);
+        chess.reset();
+        yavuz.game=chess;
+        board.setPosition(chess.fen());
+        yavuz.piecePoints={p:0.100,r:0.500,n:0.320,b:0.330,k:2.0,q:0.900};
+        yavuz.pointsGame=yavuz.points;
+        yavuz.inversePoints();
+        yavuz.fens={};
+        yavuz.updateWeights();
+        let side=0;
+        if (yavuz.color=="b") side =1;
+        Module._set_side(side);
+        if (yavuz.color=="w") yavuz.makeMove();
+        board.setPosition(chess.fen());
+    }
+    function undoLastMove(params) {
+        yavuz.game.undo();
+        yavuz.game.undo();
+        board.setPosition(yavuz.game.fen());
+        for (var row=0;row<8;row++) {
+            for(var col=0;col<8;col++) {
+                yavuz.types.forEach((type)=>{
+                    let val=this.pointsGame[type][row][col];
+                    // this.pointsGame[type][row][col]=this.sigmoid(this.inverseSigmoid(val)+this.additionPerMove[type][row][col]);
+                });
+            }
+        } 
+        Module._prev();
+        // this.piecePoints[type]-=this.pieceAdditionPerMove[type];
+        if (yavuz.game.turn()==yavuz.color) {
+            yavuz.makeMove();
+            board.enableMoveInput(inputHandler, inpHandler);
+            board.setPosition(chess.fen());
+        }
+    }
+    board.enableMoveInput(inputHandler, inpHandler);
+    document.getElementById("degistir").onclick=changeSide;
+    document.getElementById("undo").onclick=undoLastMove;
+</script>
+<script async type="text/javascript" src="c.js"></script>
+</body>
+</html>

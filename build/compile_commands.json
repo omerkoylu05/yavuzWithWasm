@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/ufuk/Documents/yavuzWithC++/libchess/build",
+  "command": "/usr/bin/x86_64-linux-gnu-g++-9  -Dyavuz_EXPORTS -I/home/ufuk/Documents/yavuzWithC++/libchess/. -I/home/ufuk/Documents/yavuzWithC++/libchess/./src -I/home/ufuk/Documents/yavuzWithC++/libchess/./src/libchess  -g -fPIC   -std=gnu++17 -o CMakeFiles/yavuz.dir/main.cpp.o -c /home/ufuk/Documents/yavuzWithC++/libchess/main.cpp",
+  "file": "/home/ufuk/Documents/yavuzWithC++/libchess/main.cpp"
+}
+]
