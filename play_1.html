@@ -1265,7 +1265,7 @@ function Yavuz(idx,game,color) {
         position: chess.fen(),
         sprite: {url: "./assets/images/chessboard-sprite-staunty.svg"},
         style: {moveFromMarker: undefined, moveToMarker: undefined}, // disable standard markers
-        orientation: COLOR.black
+        orientation: COLOR.white
     });
 
 
@@ -1297,7 +1297,7 @@ function Yavuz(idx,game,color) {
         yavuz.color=="w"?yavuz.color="b":yavuz.color="w";
         yavuz.color=="w"?yavuz.opponent="b":yavuz.opponent="w";
         console.log(yavuz.opponent);
-        board.setOrientation(yavuz.opponent);
+        board.setOrientation(yavuz.color);
         inpHandler==COLOR.white?inpHandler=COLOR.black:inpHandler=COLOR.white;
         board.enableMoveInput(inputHandler, inpHandler);
         chess.reset();

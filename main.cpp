@@ -19,15 +19,15 @@ int depth=3;
     Side s=Side::White;
 
     int startConstant=0;
-    float c_centerControl=5;
-    float c_developPieces=1;
-    float c_kingProtection=1;
-    float c_materialandSafety=1;
-    float c_rookandPawnMovement=1;
-    float ce_kingActivity=1;
-    float ce_kingProtection=1;
-    float ce_materialandSafety=1;
-    float ce_passedPawns=2;
+    int c_centerControl=5;
+    int c_developPieces=1;
+    int c_kingProtection=1;
+    int c_materialandSafety=1;
+    int c_rookandPawnMovement=1;
+    int ce_kingActivity=1;
+    int ce_kingProtection=1;
+    int ce_materialandSafety=1;
+    int ce_passedPawns=2;
     int moveCount=0;
 
     int pieceValues[6]={
@@ -141,15 +141,15 @@ int depth=3;
 
     void set_Coefs(float centerControl,float developPieces, float kingProtection, float materialandSafety, float rookandPawnMovement,
     float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) {
-        c_centerControl=centerControl;
-        c_developPieces=developPieces;
-        c_kingProtection=kingProtection;
-        c_materialandSafety=materialandSafety;
-        c_rookandPawnMovement=rookandPawnMovement;
-        ce_kingProtection=ekingProtection;
-        ce_kingActivity=ekingActivity;
-        ce_materialandSafety=ematerialandSafety;
-        ce_passedPawns=epassedPawns;
+        c_centerControl=centerControl*100;
+        c_developPieces=developPieces*100;
+        c_kingProtection=kingProtection*100;
+        c_materialandSafety=materialandSafety*100;
+        c_rookandPawnMovement=rookandPawnMovement*100;
+        ce_kingProtection=ekingProtection*100;
+        ce_kingActivity=ekingActivity*100;
+        ce_materialandSafety=ematerialandSafety*100;
+        ce_passedPawns=epassedPawns*100;
     }
 
     int calcCenterControl(Position pos) {
@@ -174,7 +174,7 @@ int depth=3;
             val+=pos.pieces(s, Piece::King).get(center[i]);
             val-=pos.pieces(!s, Piece::King).get(center[i]);
         };
-        return val;
+        return val*100;
     }
 
     int calcDevelopPieces(Position pos) {
@@ -183,7 +183,7 @@ int depth=3;
         val+=(b.count()/2);
         b=startPos.occupancy(!s).operator^(pos.occupancy(!s));
         val-=(b.count()/2);
-        return val;
+        return val*100;
     }
     
     int calcKingProtection(Position pos) {
@@ -239,23 +239,26 @@ int depth=3;
         val+=(pos.occupancy(s).operator&(opponentKingEnvironment)).count();
         val-=(pos.occupancy(!s).operator&(opponentKingEnvironment)).count();
 
-        return val;
+        return val*100;
 
     }
 
-    float calcMaterialandSafety(Position pos) {
-        float val=0;
-        val+=pos.pieces(s,Piece::Pawn).count()*1.0f;
-        val+=pos.pieces(s,Piece::Bishop).count()*3.3f;
-        val+=pos.pieces(s,Piece::Knight).count()*3.2f;
-        val+=pos.pieces(s,Piece::Rook).count()*5.0f;
-        val+=pos.pieces(s,Piece::Queen).count()*9.0f;
+    int calcMaterialandSafety(Position pos) {
+        int val=0;
+        val+=pos.pieces(s,Piece::Pawn).count()*100;
+        val+=pos.pieces(s,Piece::Bishop).count()*330;
+        val+=pos.pieces(s,Piece::Knight).count()*320;
+        val+=pos.pieces(s,Piece::Rook).count()*500;
+        val+=pos.pieces(s,Piece::Queen).count()*900;
 
-        val-=pos.pieces(!s,Piece::Pawn).count()*1.0f;
-        val-=pos.pieces(!s,Piece::Bishop).count()*3.3f;
-        val-=pos.pieces(!s,Piece::Knight).count()*3.2f;
-        val-=pos.pieces(!s,Piece::Rook).count()*5.0f;
-        val-=pos.pieces(!s,Piece::Queen).count()*9.0f;
+        val-=pos.pieces(!s,Piece::Pawn).count()*100;
+        val-=pos.pieces(!s,Piece::Bishop).count()*330;
+        val-=pos.pieces(!s,Piece::Knight).count()*320;
+        val-=pos.pieces(!s,Piece::Rook).count()*500;
+        val-=pos.pieces(!s,Piece::Queen).count()*900;
+
+        val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
+        val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
         return val;
     }
 
@@ -269,25 +272,25 @@ int depth=3;
         if (pos.can_castle(s,MoveType::qsc)) val++;
         if (pos.can_castle(!s,MoveType::ksc)) val--;
         if (pos.can_castle(!s,MoveType::qsc)) val--;
-        return val;
+        return val*100;
     }   
 
     int calcKingActivity(Position pos) {
         int val=0;
         val+=pos.king_allowed(s).count();
         val-=pos.king_allowed(!s).count();
-        return val;
+        return val*100;
     }
 
     int calcPassedPawns(Position pos) {
         int val=0;
         val+=pos.passed_pawns(s).count();
         val-=pos.passed_pawns(!s).count();
-        return val;
+        return val*100;
     }
 
-    float midgameEvaluate(Position pos) {
-        float val=0;
+    int midgameEvaluate(Position pos) {
+        int val=0;
         val+=(c_centerControl*calcCenterControl(pos));
         val+=(c_developPieces*calcDevelopPieces(pos));
         val+=(c_kingProtection*calcKingProtection(pos));
@@ -296,8 +299,8 @@ int depth=3;
         return val;
     }
 
-    float endGameEvaluate(Position pos) {
-        float val=0;
+    int endGameEvaluate(Position pos) {
+        int val=0;
         val+=(ce_kingActivity*calcKingActivity(pos));
         val+=(ce_kingProtection*calcKingProtection(pos));
         val+=(ce_materialandSafety*calcMaterialandSafety(pos));
