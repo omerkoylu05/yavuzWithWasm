@@ -259,8 +259,6 @@ int depth=3;
 
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
         val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
-        val+=(pos.squares_attacked(s).count()*100);
-        val-=(pos.squares_attacked(!s).count()*100);
         return val;
     }
 
@@ -479,8 +477,7 @@ int depth=3;
         // cout<<"baslangic deger"<<endl;
         // cout<<val<<endl;
         // int retvalue=calcGainDiff(maximizingPlayer,mo,val);
-        int retvalue=0;
-        // float retvalue=evaluate(pxf);
+        float retvalue=evaluate(pxf);
         // cout<<"son deger"<<endl;
         // cout<<retvalue<<endl;
         if (dpth == 0) {
@@ -496,11 +493,11 @@ int depth=3;
             for (const auto m: moves ) {
                 pxf.makemove(m);
                 value = max(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m,retvalue)[1]);
-                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value+=100;
-                alpha = max(alpha, value);
+                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value++;
                 pxf.undomove();
-                if (beta <= alpha)
+                if (value >= beta)
                     break;
+                alpha = max(alpha, value);
             }
             ret[1]=value;
             return ret;
@@ -510,11 +507,11 @@ int depth=3;
             for (const auto m: moves ) {
                 pxf.makemove(m);
                 value = min(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m, retvalue)[1]);
-                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value-=100;
-                beta = min(beta, value);
+                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value--;
                 pxf.undomove();
-                if (beta <= alpha)
+                if (value <=alpha)
                     break;
+                beta = min(beta, value);
             }
             ret[1]=value;
             return ret;
