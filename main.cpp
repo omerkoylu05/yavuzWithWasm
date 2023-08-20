@@ -259,6 +259,8 @@ int depth=3;
 
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
         val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
+        val+=(pos.squares_attacked(s).count()*100);
+        val-=(pos.squares_attacked(!s).count()*100);
         return val;
     }
 
@@ -477,7 +479,8 @@ int depth=3;
         // cout<<"baslangic deger"<<endl;
         // cout<<val<<endl;
         // int retvalue=calcGainDiff(maximizingPlayer,mo,val);
-        float retvalue=evaluate(pxf);
+        int retvalue=0;
+        // float retvalue=evaluate(pxf);
         // cout<<"son deger"<<endl;
         // cout<<retvalue<<endl;
         if (dpth == 0) {
@@ -493,11 +496,11 @@ int depth=3;
             for (const auto m: moves ) {
                 pxf.makemove(m);
                 value = max(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m,retvalue)[1]);
-                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value++;
-                pxf.undomove();
-                if (value >= beta)
-                    break;
+                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value+=100;
                 alpha = max(alpha, value);
+                pxf.undomove();
+                if (beta <= alpha)
+                    break;
             }
             ret[1]=value;
             return ret;
@@ -507,11 +510,11 @@ int depth=3;
             for (const auto m: moves ) {
                 pxf.makemove(m);
                 value = min(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m, retvalue)[1]);
-                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value--;
-                pxf.undomove();
-                if (value <=alpha)
-                    break;
+                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value-=100;
                 beta = min(beta, value);
+                pxf.undomove();
+                if (beta <= alpha)
+                    break;
             }
             ret[1]=value;
             return ret;
