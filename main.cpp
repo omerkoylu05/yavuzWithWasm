@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <cstring>
 #include <limits>
+#include <chrono>
+#include <algorithm>
+#include <random>
 #include "./src/libchess/position.hpp"
 
 #include <math.h>
@@ -10,6 +13,11 @@ extern "C" {
 
 using namespace std;
 using namespace libchess;
+using Clock = std::chrono::steady_clock;
+using std::chrono::time_point;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using namespace std::literals::chrono_literals;
 
 char* startFen=(char *)"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 char * ex1=(char *)"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2";
@@ -198,31 +206,33 @@ int depth=3;
         // } catch( const __assert_fail e) {
 
         // }
-        int kpe[8] = {
+        int kpe[9] = {
             // -1,-1,-1,-1,-1,-1,-1,-1
-            kpi+8<64?kp.north().operator int():-1,
-            kpi-8>0?kp.south().operator int():-1,
-            kpi+1<64?kp.east().operator int():-1,
-            kpi-1>0?kp.west().operator int():-1,
-            kpi+7<64?kp.north().west().operator int():-1,
-            kpi+9<64?kp.north().east().operator int():-1,
-            kpi-9>0?kp.south().west().operator int():-1,
-            kpi-7>0?kp.south().east().operator int():-1
+            kpi,
+            kpi+8<64?kpi+8:-1,
+            kpi-8>0?kpi-8:-1,
+            kpi+1<64?kpi+1:-1,
+            kpi-1>0?kpi-1:-1,
+            kpi+7<64?kpi+7:-1,
+            kpi+9<64?kpi+9:-1,
+            kpi-9>0?kpi-9:-1,
+            kpi-7>0?kpi-7:-1
         };
         kp=pos.king_position(!s);
         kpi=kp.operator int();
-        int okpe[8] = { 
+        int okpe[9] = { 
             // -1,-1,-1,-1,-1,-1,-1,-1
-            kpi+8<64?kp.north().operator int():-1,
-            kpi-8>0?kp.south().operator int():-1,
-            kpi+1<64?kp.east().operator int():-1,
-            kpi-1>0?kp.west().operator int():-1,
-            kpi+7<64?kp.north().west().operator int():-1,
-            kpi+9<64?kp.north().east().operator int():-1,
-            kpi-9>0?kp.south().west().operator int():-1,
-            kpi-7>0?kp.south().east().operator int():-1
+            kpi,
+            kpi+8<64?kpi+8:-1,
+            kpi-8>0?kpi-8:-1,
+            kpi+1<64?kpi+1:-1,
+            kpi-1>0?kpi-1:-1,
+            kpi+7<64?kpi+7:-1,
+            kpi+9<64?kpi+9:-1,
+            kpi-9>0?kpi-9:-1,
+            kpi-7>0?kpi-7:-1
         };
-        for(int i=0;i<8;i++) {
+        for(int i=0;i<9;i++) {
             if (kpe[i]!=-1) {
                 kingEnvironment.set(kpe[i]);
                 val+=pos.attackers(kpe[i],s).count();
@@ -259,6 +269,8 @@ int depth=3;
 
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
         val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
+        val+=(pos.squares_attacked(s).count()*100);
+        val-=(pos.squares_attacked(!s).count()*100);
         return val;
     }
 
@@ -308,10 +320,10 @@ int depth=3;
         return val;
     }
 
-    float evaluate(Position pos) {
-        float val=0;
-        float midCoef=1.0f-(0.015f*moveCount);
-        float endCoef=(float)moveCount*0.015f;
+    int evaluate(Position pos) {
+        int val=0;
+        int midCoef=1000-15*moveCount;
+        int endCoef=moveCount*15;
         val=(midCoef*midgameEvaluate(pos))+(endCoef*endGameEvaluate(pos));
         return val;
     }
@@ -459,28 +471,32 @@ int depth=3;
         }
     }
 
-    float* minmax(string fen, int dpth, float alpha, float beta, bool maximizingPlayer,Move mo,int val) {
+    int* minmax(string fen, int dpth, int alpha, int beta, bool maximizingPlayer,Move mo,int val, time_point<Clock> startTime){
         Position pxf(fen);
-        float *ret=new float[2];
+        int *ret=new int32_t[2];
         ret[0]=dpth;
+        time_point<Clock> end = Clock::now();
+        milliseconds diff = duration_cast<milliseconds>(end - startTime);
+
         if (pxf.legal_moves().size()==0&&pxf.in_check()) {
                 if (maximizingPlayer) {
-                    ret[1]=numeric_limits<float>::min(); 
+                    ret[1]=numeric_limits<int>::min(); 
                     return ret;
                 }
                 else
                 {
-                    ret[1]=numeric_limits<float>::max(); 
+                    ret[1]=numeric_limits<int>::max(); 
                     return ret;
                 }
         }
         // cout<<"baslangic deger"<<endl;
         // cout<<val<<endl;
-        // int retvalue=calcGainDiff(maximizingPlayer,mo,val);
-        float retvalue=evaluate(pxf);
+        // int retvalue=calcGainDiff(maximizingPlayer,mo,val)
+        int retvalue=0;
         // cout<<"son deger"<<endl;
         // cout<<retvalue<<endl;
-        if (dpth == 0) {
+        if (dpth == 0|| diff.count()>500) {
+            int retvalue=evaluate(pxf);
             ret[1]=retvalue;
             // cout<<"buradan döndüm"<<endl;
             // cout<<retvalue<<endl;
@@ -488,32 +504,35 @@ int depth=3;
             return ret;
         }
         if (maximizingPlayer) {
-            float value = numeric_limits<float>::min();
+            int bestVal = numeric_limits<int>::min();
             vector<Move> moves=pxf.legal_moves();
             for (const auto m: moves ) {
                 pxf.makemove(m);
-                value = max(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m,retvalue)[1]);
+                int value=minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m,retvalue,startTime)[1];
+                bestVal = max(bestVal, value);
                 if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value++;
                 pxf.undomove();
-                if (value >= beta)
+                alpha = max(alpha, bestVal);
+                if (beta<=alpha)
                     break;
-                alpha = max(alpha, value);
             }
-            ret[1]=value;
+            ret[1]=bestVal;
             return ret;
         } else {
-            float value = numeric_limits<float>::max();
+            int bestVal = numeric_limits<int>::max();
             vector<Move> moves=pxf.legal_moves();
             for (const auto m: moves ) {
                 pxf.makemove(m);
-                value = min(value, minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m, retvalue)[1]);
+                int value=minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m, retvalue, startTime)[1];
+                bestVal =min(value,bestVal);
+                beta=min(beta,bestVal);
                 if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value--;
                 pxf.undomove();
-                if (value <=alpha)
-                    break;
                 beta = min(beta, value);
+                if (beta <=alpha)
+                    break;
             }
-            ret[1]=value;
+            ret[1]=bestVal;
             return ret;
         }
     }
@@ -532,13 +551,15 @@ int depth=3;
         //     bestDepth=3.0;
         //     }
         vector<Move> moves=pos.legal_moves();
+        std::shuffle(moves.begin(),moves.end(),std::default_random_engine());
         int idx=0;
         float retvalue=evaluate(pos);//-numeric_limits<float>::infinity();//calcGain(pos);
         // cout<<"retvalue"<<endl;
         // cout<<retvalue<<endl;
         for (const auto m : moves) {
+            time_point<Clock> startTime=Clock::now();
             pos.makemove(m);
-            float *val=minmax(pos.get_fen(),depth-1,numeric_limits<float>::min(),numeric_limits<float>::max(),false,m,retvalue);
+            int *val=minmax(pos.get_fen(),depth-1,numeric_limits<float>::min(),numeric_limits<float>::max(),false,m,retvalue, startTime);
             cout<<val[1]<<endl;
             pos.undomove();
             // if (depth%2==1) {
