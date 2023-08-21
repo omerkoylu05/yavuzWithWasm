@@ -27,6 +27,7 @@ int depth=3;
     Side s=Side::White;
 
     int startConstant=0;
+    int timeLimit=250;
     int c_centerControl=5;
     int c_developPieces=1;
     int c_kingProtection=1;
@@ -74,6 +75,11 @@ int depth=3;
     // vector<float> nodeTree{};
     int set_depth(int d) {
         depth=d;
+        return 0;
+    }
+
+    int set_time_limit(int t) {
+        timeLimit=t;
         return 0;
     }
 
@@ -495,7 +501,7 @@ int depth=3;
         int retvalue=0;
         // cout<<"son deger"<<endl;
         // cout<<retvalue<<endl;
-        if (dpth == 0|| diff.count()>500) {
+        if (dpth == 0|| diff.count()>timeLimit) {
             int retvalue=evaluate(pxf);
             ret[1]=retvalue;
             // cout<<"buradan döndüm"<<endl;
