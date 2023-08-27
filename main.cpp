@@ -293,6 +293,11 @@ int depth=3;
         return val*100;
     }   
 
+    int calcRook(Position pos) {
+        int val=0;
+        return val*100;
+    }
+
     int calcKingActivity(Position pos) {
         int val=0;
         val+=pos.king_allowed(s).count();
@@ -314,6 +319,7 @@ int depth=3;
         val+=(c_kingProtection*calcKingProtection(pos));
         val+=(c_materialandSafety*calcMaterialandSafety(pos));
         val+=(c_rookandPawnMovement*calcRookandPawnMovement(pos));
+        // cout<<"midgame:"<<val<<endl;
         return val;
     }
 
@@ -323,12 +329,13 @@ int depth=3;
         val+=(ce_kingProtection*calcKingProtection(pos));
         val+=(ce_materialandSafety*calcMaterialandSafety(pos));
         val+=(ce_passedPawns*calcPassedPawns(pos));
+        // cout<<"endgame:"<<val<<endl;
         return val;
     }
 
     int evaluate(Position pos) {
         int val=0;
-        int midCoef=1000-15*moveCount;
+        int midCoef=(1000-(15*moveCount));
         int endCoef=moveCount*15;
         val=(midCoef*midgameEvaluate(pos))+(endCoef*endGameEvaluate(pos));
         return val;
@@ -557,24 +564,29 @@ int depth=3;
         //     bestDepth=3.0;
         //     }
         vector<Move> moves=pos.legal_moves();
+        std::cout<<(moves.size())<<endl;
         std::shuffle(moves.begin(),moves.end(),std::default_random_engine());
+        std::cout<<(moves.size())<<endl;
         int idx=0;
-        float retvalue=evaluate(pos);//-numeric_limits<float>::infinity();//calcGain(pos);
+        int retvalue=0;
+        // float retvalue=evaluate(pos);//-numeric_limits<float>::infinity();//calcGain(pos);
         // cout<<"retvalue"<<endl;
         // cout<<retvalue<<endl;
         for (const auto m : moves) {
             time_point<Clock> startTime=Clock::now();
             pos.makemove(m);
             int *val=minmax(pos.get_fen(),depth-1,numeric_limits<float>::min(),numeric_limits<float>::max(),false,m,retvalue, startTime);
+            if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) val[1]+=100*(1000-(moveCount*15))*c_rookandPawnMovement;
             cout<<val[1]<<endl;
             pos.undomove();
             // if (depth%2==1) {
-                if (val[1]==bestGain) {
-                    if (val[0]>=bestDepth) {
-                        bestDepth=val[0];
-                        bestMove=m;
-                    }
-                } else if (val[1]>bestGain) {
+                // if (val[1]==bestGain) {
+                //     if (val[0]>=bestDepth) {
+                //         bestDepth=val[0];
+                //         bestMove=m;
+                //     }
+                // } else 
+                if (val[1]>bestGain) {
                     bestGain=val[1];
                     bestMove=m;
                     }
@@ -592,7 +604,7 @@ int depth=3;
             // }
             
         }
-
+        cout<<bestGain<<endl;
         string bData=bestMove.operator std::string();
         char *ret=new char[bData.length()+1];
         strcpy(ret,bData.c_str());
