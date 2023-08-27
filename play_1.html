@@ -14,6 +14,7 @@
 <h1><a href="../">YAVUZ ai play arena!</a></h1>
 <button id="degistir">Degistir</button>
 <button id="undo">Geri Al</button>
+<button id="dondur">Döndür</button>
 <h2>Example: Input enabled, move validation with chess.js</h2>
 <p>Input enabled for white. <a href="https://github.com/jhlywa/chess.js">chess.js</a> does the validation and answers
     with random moves.</p>
@@ -372,8 +373,8 @@ let ready=false;
     float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) **/
 
                 Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
-                Module._set_depth(6);
-                Module._set_time_limit(250);
+                Module._set_depth(5);
+                Module._set_time_limit(300);
                 console.log("ready...");
                 ready=true;
                 $.ajax({
@@ -1339,9 +1340,16 @@ function Yavuz(idx,game,color) {
             board.setPosition(chess.fen());
         }
     }
+    function flipBoard() {
+        if (board.orientation==COLOR.white)
+            board.orientation=COLOR.black;
+        else board.orientation=COLOR.white;
+        console.log("döndür tıklandı");
+    }
     board.enableMoveInput(inputHandler, inpHandler);
     document.getElementById("degistir").onclick=changeSide;
     document.getElementById("undo").onclick=undoLastMove;
+    document.getElementById("dondur").onclick=flipBoard;
 </script>
 <script async type="text/javascript" src="c.js"></script>
 </body>
