@@ -1313,7 +1313,7 @@ function Yavuz(idx,game,color) {
         yavuz.pointsGame=yavuz.points;
         yavuz.inversePoints();
         yavuz.fens={};
-        yavuz.updateWeights();
+        // yavuz.updateWeights();
         let side=0;
         if (yavuz.color=="b") side =1;
         Module._set_side(side);
@@ -1341,10 +1341,10 @@ function Yavuz(idx,game,color) {
         }
     }
     function flipBoard() {
-        if (board.orientation==COLOR.white)
-            board.orientation=COLOR.black;
-        else board.orientation=COLOR.white;
-        console.log("döndür tıklandı");
+        // board.setOrientation(COLOR.black);
+        if (board.getOrientation()==COLOR.white)
+            board.setOrientation(COLOR.black);
+        else board.setOrientation(COLOR.white);
     }
     board.enableMoveInput(inputHandler, inpHandler);
     document.getElementById("degistir").onclick=changeSide;

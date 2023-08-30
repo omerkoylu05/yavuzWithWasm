@@ -84,23 +84,25 @@ int depth=3;
     }
 
     int set_side(int side) {
-        side==0?startConstant=startConstant:startConstant=-startConstant;
-        if (side!=s) {
-            int temp=0;
-            int temp2=0;
-            for (int i=0;i<6;i++) {
-                for (int s=0;s<64;s++) {
-                    temp=opPoints[i][s];
-                    opPoints[i][s]=pPoints[i][s];
-                    pPoints[i][s]=temp;
-                    temp2=addperMove[i][s];
-                    addperMove[i][s]=oaddperMove[i][s];
-                    oaddperMove[i][s]=temp2;
-                }
-            }
-        }
-        s=Side(side);
+        cout<<side<<endl;
+        s=!s;
+        moveCount=0;
         return 0;
+        // side==0?startConstant=startConstant:startConstant=-startConstant;
+        // if (side!=s) {
+        //     int temp=0;
+        //     int temp2=0;
+        //     for (int i=0;i<6;i++) {
+        //         for (int s=0;s<64;s++) {
+        //             temp=opPoints[i][s];
+        //             opPoints[i][s]=pPoints[i][s];
+        //             pPoints[i][s]=temp;
+        //             temp2=addperMove[i][s];
+        //             addperMove[i][s]=oaddperMove[i][s];
+        //             oaddperMove[i][s]=temp2;
+        //         }
+        //     }
+        // }
     }
 
     int* get_points(int index) {
@@ -261,17 +263,17 @@ int depth=3;
 
     int calcMaterialandSafety(Position pos) {
         int val=0;
-        val+=pos.pieces(s,Piece::Pawn).count()*100;
-        val+=pos.pieces(s,Piece::Bishop).count()*330;
-        val+=pos.pieces(s,Piece::Knight).count()*320;
-        val+=pos.pieces(s,Piece::Rook).count()*500;
-        val+=pos.pieces(s,Piece::Queen).count()*900;
+        val+=pos.pieces(s,Piece::Pawn).count()*1000;
+        val+=pos.pieces(s,Piece::Bishop).count()*3300;
+        val+=pos.pieces(s,Piece::Knight).count()*3200;
+        val+=pos.pieces(s,Piece::Rook).count()*5000;
+        val+=pos.pieces(s,Piece::Queen).count()*9000;
 
-        val-=pos.pieces(!s,Piece::Pawn).count()*100;
-        val-=pos.pieces(!s,Piece::Bishop).count()*330;
-        val-=pos.pieces(!s,Piece::Knight).count()*320;
-        val-=pos.pieces(!s,Piece::Rook).count()*500;
-        val-=pos.pieces(!s,Piece::Queen).count()*900;
+        val-=pos.pieces(!s,Piece::Pawn).count()*1000;
+        val-=pos.pieces(!s,Piece::Bishop).count()*3300;
+        val-=pos.pieces(!s,Piece::Knight).count()*3200;
+        val-=pos.pieces(!s,Piece::Rook).count()*5000;
+        val-=pos.pieces(!s,Piece::Queen).count()*9000;
 
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
         val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
@@ -336,8 +338,10 @@ int depth=3;
     int evaluate(Position pos) {
         int val=0;
         int midCoef=(1000-(15*moveCount));
+        if (midCoef>0) val+=midCoef*midgameEvaluate(pos);
         int endCoef=moveCount*15;
-        val=(midCoef*midgameEvaluate(pos))+(endCoef*endGameEvaluate(pos));
+        if (endCoef>1000) endCoef=1000;
+        val+=endCoef*endGameEvaluate(pos);
         return val;
     }
     
@@ -576,7 +580,9 @@ int depth=3;
             time_point<Clock> startTime=Clock::now();
             pos.makemove(m);
             int *val=minmax(pos.get_fen(),depth-1,numeric_limits<float>::min(),numeric_limits<float>::max(),false,m,retvalue, startTime);
-            if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) val[1]+=100*(1000-(moveCount*15))*c_rookandPawnMovement;
+            int coef=(1000-(moveCount*15));
+            if (coef<0) coef=0;
+            if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) val[1]+=100*coef*c_rookandPawnMovement;
             cout<<val[1]<<endl;
             pos.undomove();
             // if (depth%2==1) {
