@@ -586,12 +586,12 @@ int depth=3;
             cout<<val[1]<<endl;
             pos.undomove();
             // if (depth%2==1) {
-                // if (val[1]==bestGain) {
-                //     if (val[0]>=bestDepth) {
-                //         bestDepth=val[0];
-                //         bestMove=m;
-                //     }
-                // } else 
+                if (val[1]==bestGain) {
+                    bestMove=m;
+                    if (val[0]<=bestDepth) {
+                        bestDepth=val[0];
+                    }
+                } else 
                 if (val[1]>bestGain) {
                     bestGain=val[1];
                     bestMove=m;
