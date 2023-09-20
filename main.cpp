@@ -85,7 +85,7 @@ int depth=3;
 
     int set_side(int side) {
         cout<<side<<endl;
-        s=!s;
+        s=Side(side);
         moveCount=0;
         return 0;
         // side==0?startConstant=startConstant:startConstant=-startConstant;
@@ -176,19 +176,19 @@ int depth=3;
                             Square("d4") };
         for(int i=0;i<4;i++) {
             val+=pos.attackers(center[i], s).count();
-            val-=pos.attackers(center[i], !s).count();
+            val-=pos.attackers(center[i], operator!(s)).count();
             val+=pos.pieces(s, Piece::Pawn).get(center[i]);
-            val-=pos.pieces(!s, Piece::Pawn).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::Pawn).get(center[i]);
             val+=pos.pieces(s, Piece::Bishop).get(center[i]);
-            val-=pos.pieces(!s, Piece::Bishop).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::Bishop).get(center[i]);
             val+=pos.pieces(s, Piece::Knight).get(center[i]);
-            val-=pos.pieces(!s, Piece::Knight).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::Knight).get(center[i]);
             val+=pos.pieces(s, Piece::Rook).get(center[i]);
-            val-=pos.pieces(!s, Piece::Rook).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::Rook).get(center[i]);
             val+=pos.pieces(s, Piece::Queen).get(center[i]);
-            val-=pos.pieces(!s, Piece::Queen).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::Queen).get(center[i]);
             val+=pos.pieces(s, Piece::King).get(center[i]);
-            val-=pos.pieces(!s, Piece::King).get(center[i]);
+            val-=pos.pieces(operator!(s), Piece::King).get(center[i]);
         };
         return val*100;
     }
@@ -197,7 +197,7 @@ int depth=3;
         int val=0;
         Bitboard b=startPos.occupancy(s).operator^(pos.occupancy(s));
         val+=(b.count()/2);
-        b=startPos.occupancy(!s).operator^(pos.occupancy(!s));
+        b=startPos.occupancy(operator!(s)).operator^(pos.occupancy(operator!(s)));
         val-=(b.count()/2);
         return val*100;
     }
@@ -226,7 +226,7 @@ int depth=3;
             kpi-9>0?kpi-9:-1,
             kpi-7>0?kpi-7:-1
         };
-        kp=pos.king_position(!s);
+        kp=pos.king_position(operator!(s));
         kpi=kp.operator int();
         int okpe[9] = { 
             // -1,-1,-1,-1,-1,-1,-1,-1
@@ -244,18 +244,18 @@ int depth=3;
             if (kpe[i]!=-1) {
                 kingEnvironment.set(kpe[i]);
                 val+=pos.attackers(kpe[i],s).count();
-                val-=pos.attackers(kpe[i],!s).count();
+                val-=pos.attackers(kpe[i],operator!(s)).count();
             }
             if (okpe[i]!=-1) {
                 opponentKingEnvironment.set(okpe[i]);
                 val+=pos.attackers(okpe[i],s).count();
-                val-=pos.attackers(okpe[i],!s).count();
+                val-=pos.attackers(okpe[i],operator!(s)).count();
             }
         }
         val+=(pos.occupancy(s).operator&(kingEnvironment)).count();
-        val-=(pos.occupancy(!s).operator&(kingEnvironment)).count();
+        val-=(pos.occupancy(operator!(s)).operator&(kingEnvironment)).count();
         val+=(pos.occupancy(s).operator&(opponentKingEnvironment)).count();
-        val-=(pos.occupancy(!s).operator&(opponentKingEnvironment)).count();
+        val-=(pos.occupancy(operator!(s)).operator&(opponentKingEnvironment)).count();
 
         return val*100;
 
@@ -269,16 +269,16 @@ int depth=3;
         val+=pos.pieces(s,Piece::Rook).count()*5000;
         val+=pos.pieces(s,Piece::Queen).count()*9000;
 
-        val-=pos.pieces(!s,Piece::Pawn).count()*1000;
-        val-=pos.pieces(!s,Piece::Bishop).count()*3300;
-        val-=pos.pieces(!s,Piece::Knight).count()*3200;
-        val-=pos.pieces(!s,Piece::Rook).count()*5000;
-        val-=pos.pieces(!s,Piece::Queen).count()*9000;
+        val-=pos.pieces(operator!(s),Piece::Pawn).count()*1000;
+        val-=pos.pieces(operator!(s),Piece::Bishop).count()*3300;
+        val-=pos.pieces(operator!(s),Piece::Knight).count()*3200;
+        val-=pos.pieces(operator!(s),Piece::Rook).count()*5000;
+        val-=pos.pieces(operator!(s),Piece::Queen).count()*9000;
 
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
-        val-=(pos.squares_attacked(!s).operator&(pos.occupied()).count()*100);
+        val-=(pos.squares_attacked(operator!(s)).operator&(pos.occupied()).count()*100);
         val+=(pos.squares_attacked(s).count()*100);
-        val-=(pos.squares_attacked(!s).count()*100);
+        val-=(pos.squares_attacked(operator!(s)).count()*100);
         return val;
     }
 
@@ -286,12 +286,12 @@ int depth=3;
         int val=0;
         Bitboard b=startPos.pieces(s,Piece::Pawn)^pos.pieces(s,Piece::Pawn);
         val-=(b.count()/2);
-        b=startPos.pieces(!s,Piece::Pawn)^pos.pieces(!s,Piece::Pawn);
+        b=startPos.pieces(operator!(s),Piece::Pawn)^pos.pieces(operator!(s),Piece::Pawn);
         val+=(b.count()/2);
         if (pos.can_castle(s,MoveType::ksc)) val++;
         if (pos.can_castle(s,MoveType::qsc)) val++;
-        if (pos.can_castle(!s,MoveType::ksc)) val--;
-        if (pos.can_castle(!s,MoveType::qsc)) val--;
+        if (pos.can_castle(operator!(s),MoveType::ksc)) val--;
+        if (pos.can_castle(operator!(s),MoveType::qsc)) val--;
         return val*100;
     }   
 
@@ -303,14 +303,14 @@ int depth=3;
     int calcKingActivity(Position pos) {
         int val=0;
         val+=pos.king_allowed(s).count();
-        val-=pos.king_allowed(!s).count();
+        val-=pos.king_allowed(operator!(s)).count();
         return val*100;
     }
 
     int calcPassedPawns(Position pos) {
         int val=0;
         val+=pos.passed_pawns(s).count();
-        val-=pos.passed_pawns(!s).count();
+        val-=pos.passed_pawns(operator!(s)).count();
         return val*100;
     }
 
@@ -587,9 +587,16 @@ int depth=3;
             pos.undomove();
             // if (depth%2==1) {
                 if (val[1]==bestGain) {
-                    bestMove=m;
-                    if (val[0]<=bestDepth) {
-                        bestDepth=val[0];
+                    if (bestGain>0) {
+                        if (val[0]<=bestDepth) {
+                            bestMove=m;
+                            bestDepth=val[0];
+                        }
+                    } else {
+                        if (val[0]>=bestDepth) {
+                            bestMove=m;
+                            bestDepth=val[0];
+                        }
                     }
                 } else 
                 if (val[1]>bestGain) {
