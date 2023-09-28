@@ -99,8 +99,74 @@ let ready=false;
         //   if (text) Module.printErr('[post-exception status] ' + text);
         // };
       };
-    //   Module["wasmMemory"]=new WebAssembly.Memory({"initial":TOTAL_MEMORY/WASM_PAGE_SIZE, "maximum" : TOTAL_MEMORY/WASM_PAGE_SIZE});
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+        var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        // canvas: (function() {
+        //   var canvas = document.getElementById('canvas');
 
+        //   // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+        //   // application robust, you may want to override this behavior before shipping!
+        //   // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+        //   canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+        //   return canvas;
+        // })(),
+        // setStatus: function(text) {
+        //   if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+        //   if (text === Module.setStatus.last.text) return;
+        //   var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        //   var now = Date.now();
+        //   if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+        //   Module.setStatus.last.time = now;
+        //   Module.setStatus.last.text = text;
+        //   if (m) {
+        //     text = m[1];
+        //     progressElement.value = parseInt(m[2])*100;
+        //     progressElement.max = parseInt(m[4])*100;
+        //     progressElement.hidden = false;
+        //     spinnerElement.hidden = false;
+        //   } else {
+        //     progressElement.value = null;
+        //     progressElement.max = null;
+        //     progressElement.hidden = true;
+        //     if (!text) spinnerElement.style.display = 'none';
+        //   }
+        //   statusElement.innerHTML = text;
+        // },
+        // totalDependencies: 0,
+        // monitorRunDependencies: function(left) {
+        //   this.totalDependencies = Math.max(this.totalDependencies, left);
+        //   Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        // }
+    //   };
+    //   Module.setStatus('Downloading...');
+    //   window.onerror = function(event) {
+        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+        // Module.setStatus('Exception thrown, see JavaScript console');
+        // spinnerElement.style.display = 'none';
+        // Module.setStatus = function(text) {
+        //   if (text) Module.printErr('[post-exception status] ' + text);
+        // };
+      };
+    //   Module["wasmMemory"]=new WebAssembly.Memory({"initial":TOTAL_MEMORY/WASM_PAGE_SIZE, "maximum" : TOTAL_MEMORY/WASM_PAGE_SIZE});
       let POINTS;
       let elo=0;
       let additionPerMove;
@@ -148,7 +214,7 @@ let ready=false;
 
         $.ajax({
             type: "GET",
-            url: "./16.txt",
+            url: "16.txt",
             // url:"./BackupYavuz/ready.txt",
             dataType: "html",
             success: function (response,err) {
@@ -373,21 +439,22 @@ let ready=false;
     float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) **/
 
                 Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
-                Module._set_depth(5);
-                Module._set_time_limit(300);
+                // console.log(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns)
+                Module._set_depth(6);
+                Module._set_time_limit(250);
                 console.log("ready...");
                 ready=true;
-                $.ajax({
-                    type:"GET",
-                    url:"./memory/memory.json",
-                    dataType:"json",
-                    success:function (response,err) { 
-                        MEMORY=response;
-                        console.log(MEMORY);
-                        Module._set_depth(5);
-                        ready=true;
-                        }
-                    });
+                // $.ajax({
+                //     type:"GET",
+                //     url:"./memory/memory.json",
+                //     dataType:"json",
+                //     success:function (response,err) { 
+                //         MEMORY=response;
+                //         console.log(MEMORY);
+                //         Module._set_depth(5);
+                //         ready=true;
+                //         }
+                //     });
                 // let getpp=Module.ccall("get_points","number",["number"],[5]);
                 // var array = new Float32Array(64)
                 // var pos = getpp / Float32Array.BYTES_PER_ELEMENT;
@@ -1316,6 +1383,7 @@ function Yavuz(idx,game,color) {
         // yavuz.updateWeights();
         let side=0;
         if (yavuz.color=="b") side =1;
+        // Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
         Module._set_side(side);
         if (yavuz.color=="w") yavuz.makeMove();
         board.setPosition(chess.fen());
