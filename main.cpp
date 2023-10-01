@@ -338,10 +338,10 @@ int depth=3;
     int evaluate(Position pos) {
         int val=0;
         int midCoef=(1000-(15*moveCount));
-        if (midCoef>0) val+=midCoef*midgameEvaluate(pos);
+        if (midCoef>0) val+=(midCoef*midgameEvaluate(pos));
         int endCoef=moveCount*15;
         if (endCoef>1000) endCoef=1000;
-        val+=endCoef*endGameEvaluate(pos);
+        val+=(endCoef*endGameEvaluate(pos));
         return val;
     }
     
@@ -561,7 +561,7 @@ int depth=3;
         Position pos(f);
         // vector<float> nodeTree={};
         Move bestMove;
-        int bestDepth=0;
+        int bestDepth=depth;
         int bestGain=numeric_limits<int>::min();
         // if (depth%2==0) {
         //     bestGain=numeric_limits<float>::infinity();
@@ -588,12 +588,12 @@ int depth=3;
             // if (depth%2==1) {
                 if (val[1]==bestGain) {
                     if (bestGain>0) {
-                        if (val[0]<=bestDepth) {
+                        if (val[0]>bestDepth) {
                             bestMove=m;
                             bestDepth=val[0];
                         }
                     } else {
-                        if (val[0]>=bestDepth) {
+                        if (val[0]<bestDepth) {
                             bestMove=m;
                             bestDepth=val[0];
                         }
@@ -602,6 +602,7 @@ int depth=3;
                 if (val[1]>bestGain) {
                     bestGain=val[1];
                     bestMove=m;
+                    bestDepth=val[0];
                     }
             // } else {
             //     if (val[1]==bestGain) {
@@ -626,40 +627,40 @@ int depth=3;
         // return ret;
     }
 
-    int main() {
-        // string s(startFen);
-        float **vals=new float*[6]();
-        float **vals2=new float*[6]();
-        float **vals3=new float*[6]();
-        float **vals4=new float*[6]();
-        for (int i=0;i<6;i++) {
-            vals[i]=new float[64];
-            vals2[i]=new float[64];
-            vals3[i]=new float[64];
-            vals4[i]=new float[64];
-        }
+    // int main() {
+    //     // string s(startFen);
+    //     float **vals=new float*[6]();
+    //     float **vals2=new float*[6]();
+    //     float **vals3=new float*[6]();
+    //     float **vals4=new float*[6]();
+    //     for (int i=0;i<6;i++) {
+    //         vals[i]=new float[64];
+    //         vals2[i]=new float[64];
+    //         vals3[i]=new float[64];
+    //         vals4[i]=new float[64];
+    //     }
 
-        for (int i=0;i<6;i++) {
-            for (int s=0;s<64;s++) {
-                vals[i][s]=0.999f;
-                vals2[i][s]=0.999f;
-                vals3[i][s]=0.000f;
-                vals4[i][s]=0.000f;
-            }
-        }
-        set_piecePoints(vals,vals2,vals3,vals4);
+    //     for (int i=0;i<6;i++) {
+    //         for (int s=0;s<64;s++) {
+    //             vals[i][s]=0.999f;
+    //             vals2[i][s]=0.999f;
+    //             vals3[i][s]=0.000f;
+    //             vals4[i][s]=0.000f;
+    //         }
+    //     }
+    //     set_piecePoints(vals,vals2,vals3,vals4);
 
-        // cout<<pPoints[0][16];
-        char* m=selectBest(ex1);
-        // // char* f=(char *)"test.txt";
-        // // initValues(f);
-        // // Position pos(s);
-        // // cout<<s;
-        // // char *a=selectBest(startFen);
-        // // // if (pos.board[0][0][0]=='r') cout<<"true"<<endl;
-        // // // cout<<pos;
-        cout<<m;
-        return 0;
-    } 
+    //     // cout<<pPoints[0][16];
+    //     char* m=selectBest(ex1);
+    //     // // char* f=(char *)"test.txt";
+    //     // // initValues(f);
+    //     // // Position pos(s);
+    //     // // cout<<s;
+    //     // // char *a=selectBest(startFen);
+    //     // // // if (pos.board[0][0][0]=='r') cout<<"true"<<endl;
+    //     // // // cout<<pos;
+    //     cout<<m;
+    //     return 0;
+    // } 
 
 }

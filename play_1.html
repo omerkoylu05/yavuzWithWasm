@@ -148,7 +148,7 @@ let ready=false;
 
         $.ajax({
             type: "GET",
-            url: "./16.txt",
+            url: "./31.txt",
             // url:"./BackupYavuz/ready.txt",
             dataType: "html",
             success: function (response,err) {
@@ -374,20 +374,20 @@ let ready=false;
 
                 Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
                 Module._set_depth(5);
-                Module._set_time_limit(300);
+                Module._set_time_limit(200);
                 console.log("ready...");
                 ready=true;
-                $.ajax({
-                    type:"GET",
-                    url:"./memory/memory.json",
-                    dataType:"json",
-                    success:function (response,err) { 
-                        MEMORY=response;
-                        console.log(MEMORY);
-                        Module._set_depth(5);
-                        ready=true;
-                        }
-                    });
+                // $.ajax({
+                //     type:"GET",
+                //     url:"./memory/memory.json",
+                //     dataType:"json",
+                //     success:function (response,err) { 
+                //         MEMORY=response;
+                //         console.log(MEMORY);
+                //         Module._set_depth(5);
+                //         ready=true;
+                //         }
+                //     });
                 // let getpp=Module.ccall("get_points","number",["number"],[5]);
                 // var array = new Float32Array(64)
                 // var pos = getpp / Float32Array.BYTES_PER_ELEMENT;
