@@ -7,7 +7,72 @@
 #include <random>
 #include "./src/libchess/position.hpp"
 
-#include <math.h>
+
+enum File {
+    a = 0,
+    b = 1,
+    c = 2,
+    d = 3,
+    e = 4,
+    f = 5,
+    g = 6,
+    h = 7
+};
+
+int pawnTable[64] = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    5, 10, 10, -20, -20, 10, 10, 5,
+    5, -5, -10, 0, 0, -10, -5, 5,
+    0, 0, 0, 20, 20, 0, 0, 0,
+    5, 5, 10, 25, 25, 10, 5, 5,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    0, 0, 0, 0, 0, 0, 0, 0
+};
+
+int knightTable[64] = {
+    -50, -40, -30, -30, -30, -30, -40, -50,
+    -40, -20, 0, 0, 0, 0, -20, -40,
+    -30, 0, 10, 15, 15, 10, 0, -30,
+    -30, 5, 15, 20, 20, 15, 5, -30,
+    -30, 0, 15, 20, 20, 15, 0, -30,
+    -30, 5, 10, 15, 15, 10, 5, -30,
+    -40, -20, 0, 5, 5, 0, -20, -40,
+    -50, -40, -30, -30, -30, -30, -40, -50
+};
+
+int bishopTable[64] = {
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -10, 0, 0, 0, 0, 0, 0, -10,
+    -10, 0, 5, 10, 10, 5, 0, -10,
+    -10, 5, 5, 10, 10, 5, 5, -10,
+    -10, 0, 10, 10, 10, 10, 0, -10,
+    -10, 10, 10, 10, 10, 10, 10, -10,
+    -10, 5, 0, 0, 0, 0, 5, -10,
+    -20, -10, -10, -10, -10, -10, -10, -20
+};
+
+int rookTable[64] = {
+    0, 0, 0, 5, 5, 0, 0, 0,
+    -5, 0, 0, 0, 0, 0, 0, -5,
+    -5, 0, 0, 0, 0, 0, 0, -5,
+    -5, 0, 0, 0, 0, 0, 0, -5,
+    -5, 0, 0, 0, 0, 0, 0, -5,
+    -5, 0, 0, 0, 0, 0, 0, -5,
+    5, 10, 10, 10, 10, 10, 10, 5,
+    0, 0, 0, 0, 0, 0, 0, 0
+};
+
+int queenTable[64] = {
+    -20, -10, -10, -5, -5, -10, -10, -20,
+    -10, 0, 0, 0, 0, 0, 0, -10,
+    -10, 0, 5, 5, 5, 5, 0, -10,
+    -5, 0, 5, 5, 5, 5, 0, -5,
+    0, 0, 5, 5, 5, 5, 0, -5,
+    -10, 5, 5, 5, 5, 5, 0, -10,
+    -10, 0, 5, 0, 0, 0, 0, -10,
+    -20, -10, -10, -5, -5, -10, -10, -20
+};
 
 extern "C" {
 
@@ -35,9 +100,15 @@ int depth=3;
     int c_rookandPawnMovement=1;
     int ce_kingActivity=1;
     int ce_kingProtection=1;
-    int ce_materialandSafety=1;
+    int ce_material=1;
     int ce_passedPawns=2;
     int moveCount=0;
+    int c_safety=0;
+    int ce_safety=0;
+    int c_material=0;
+    int c_moveCount=0;
+    bool rooked=false;
+    bool erooked=false;
 
     int pieceValues[6]={
         1,//0.1000,
@@ -52,7 +123,7 @@ int depth=3;
     {
         p = 0,
         n,
-        b,
+        bi,
         r,
         q,
         k,
@@ -155,17 +226,19 @@ int depth=3;
         return value;
     }
 
-    void set_Coefs(float centerControl,float developPieces, float kingProtection, float materialandSafety, float rookandPawnMovement,
-    float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) {
+    void set_Coefs(float centerControl,float developPieces, float kingProtection, float material, float rookandPawnMovement,
+    float ekingProtection, float ekingActivity, float ematerial, float epassedPawns, float safety, float esafety) {
         c_centerControl=centerControl*100;
         c_developPieces=developPieces*100;
         c_kingProtection=kingProtection*100;
-        c_materialandSafety=materialandSafety*100;
+        c_material=material*100;
         c_rookandPawnMovement=rookandPawnMovement*100;
         ce_kingProtection=ekingProtection*100;
         ce_kingActivity=ekingActivity*100;
-        ce_materialandSafety=ematerialandSafety*100;
+        ce_material=ematerial*100;
         ce_passedPawns=epassedPawns*100;
+        c_safety=safety*100;
+        ce_safety=esafety*100;
     }
 
     int calcCenterControl(Position pos) {
@@ -177,18 +250,18 @@ int depth=3;
         for(int i=0;i<4;i++) {
             val+=pos.attackers(center[i], s).count();
             val-=pos.attackers(center[i], operator!(s)).count();
-            val+=pos.pieces(s, Piece::Pawn).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::Pawn).get(center[i]);
-            val+=pos.pieces(s, Piece::Bishop).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::Bishop).get(center[i]);
-            val+=pos.pieces(s, Piece::Knight).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::Knight).get(center[i]);
-            val+=pos.pieces(s, Piece::Rook).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::Rook).get(center[i]);
-            val+=pos.pieces(s, Piece::Queen).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::Queen).get(center[i]);
-            val+=pos.pieces(s, Piece::King).get(center[i]);
-            val-=pos.pieces(operator!(s), Piece::King).get(center[i]);
+            val+=pos.pieces(s, Piece::Pawn).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::Pawn).get(center[i])?1:0;
+            val+=pos.pieces(s, Piece::Bishop).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::Bishop).get(center[i])?1:0;
+            val+=pos.pieces(s, Piece::Knight).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::Knight).get(center[i])?1:0;
+            val+=pos.pieces(s, Piece::Rook).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::Rook).get(center[i])?1:0;
+            val+=pos.pieces(s, Piece::Queen).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::Queen).get(center[i])?1:0;
+            val+=pos.pieces(s, Piece::King).get(center[i])?1:0;
+            val-=pos.pieces(operator!(s), Piece::King).get(center[i])?1:0;
         };
         return val*100;
     }
@@ -261,20 +334,25 @@ int depth=3;
 
     }
 
-    int calcMaterialandSafety(Position pos) {
+    int calcMaterial(Position pos) {
         int val=0;
-        val+=pos.pieces(s,Piece::Pawn).count()*1000;
-        val+=pos.pieces(s,Piece::Bishop).count()*3300;
-        val+=pos.pieces(s,Piece::Knight).count()*3200;
-        val+=pos.pieces(s,Piece::Rook).count()*5000;
-        val+=pos.pieces(s,Piece::Queen).count()*9000;
+        val+=(pos.pieces(s,Piece::Pawn).count()*100);
+        val+=(pos.pieces(s,Piece::Bishop).count()*330);
+        val+=(pos.pieces(s,Piece::Knight).count()*320);
+        val+=(pos.pieces(s,Piece::Rook).count()*500);
+        val+=(pos.pieces(s,Piece::Queen).count()*900);
 
-        val-=pos.pieces(operator!(s),Piece::Pawn).count()*1000;
-        val-=pos.pieces(operator!(s),Piece::Bishop).count()*3300;
-        val-=pos.pieces(operator!(s),Piece::Knight).count()*3200;
-        val-=pos.pieces(operator!(s),Piece::Rook).count()*5000;
-        val-=pos.pieces(operator!(s),Piece::Queen).count()*9000;
+        val-=(pos.pieces(operator!(s),Piece::Pawn).count()*100);
+        val-=(pos.pieces(operator!(s),Piece::Bishop).count()*330);
+        val-=(pos.pieces(operator!(s),Piece::Knight).count()*320);
+        val-=(pos.pieces(operator!(s),Piece::Rook).count()*500);
+        val-=(pos.pieces(operator!(s),Piece::Queen).count()*900);
 
+        return val;
+    }
+
+    int calcSafety(Position pos) {
+        int val=0;
         val+=(pos.squares_attacked(s).operator&(pos.occupied()).count()*100);
         val-=(pos.squares_attacked(operator!(s)).operator&(pos.occupied()).count()*100);
         val+=(pos.squares_attacked(s).count()*100);
@@ -288,17 +366,12 @@ int depth=3;
         val-=(b.count()/2);
         b=startPos.pieces(operator!(s),Piece::Pawn)^pos.pieces(operator!(s),Piece::Pawn);
         val+=(b.count()/2);
-        if (pos.can_castle(s,MoveType::ksc)) val++;
-        if (pos.can_castle(s,MoveType::qsc)) val++;
-        if (pos.can_castle(operator!(s),MoveType::ksc)) val--;
-        if (pos.can_castle(operator!(s),MoveType::qsc)) val--;
+        if (pos.can_castle(s,MoveType::ksc)&&rooked) val++;
+        if (pos.can_castle(s,MoveType::qsc)&&rooked) val++;
+        if (pos.can_castle(operator!(s),MoveType::ksc)&&erooked) val--;
+        if (pos.can_castle(operator!(s),MoveType::qsc)&&erooked) val--;
         return val*100;
     }   
-
-    int calcRook(Position pos) {
-        int val=0;
-        return val*100;
-    }
 
     int calcKingActivity(Position pos) {
         int val=0;
@@ -314,12 +387,17 @@ int depth=3;
         return val*100;
     }
 
+    int calcMoveCount(Position pos) {
+        return sizeof(pos.legal_moves());
+    }
+
     int midgameEvaluate(Position pos) {
         int val=0;
         val+=(c_centerControl*calcCenterControl(pos));
         val+=(c_developPieces*calcDevelopPieces(pos));
         val+=(c_kingProtection*calcKingProtection(pos));
-        val+=(c_materialandSafety*calcMaterialandSafety(pos));
+        val+=(c_material*calcMaterial(pos)*10);
+        val+=(c_safety*calcSafety(pos));
         val+=(c_rookandPawnMovement*calcRookandPawnMovement(pos));
         // cout<<"midgame:"<<val<<endl;
         return val;
@@ -329,9 +407,98 @@ int depth=3;
         int val=0;
         val+=(ce_kingActivity*calcKingActivity(pos));
         val+=(ce_kingProtection*calcKingProtection(pos));
-        val+=(ce_materialandSafety*calcMaterialandSafety(pos));
+        val+=(ce_material*calcMaterial(pos));
+        val+=(ce_safety*calcSafety(pos));
         val+=(ce_passedPawns*calcPassedPawns(pos));
         // cout<<"endgame:"<<val<<endl;
+        return val;
+    }
+
+    char getPieceOnSquare(const std::string& fenString, int squareIndex) {
+    // Process the FEN string to extract the piece positions
+    std::string piecePositions = fenString.substr(0, fenString.find(' '));
+
+    // Initialize the rank and file
+    int rank = 7 - squareIndex / 8;
+    int file = squareIndex % 8;
+
+    // Iterate over the piece positions
+    for (char c : piecePositions) {
+        if (c == '/') {
+            rank--;
+            file = 0;
+        } else if (isdigit(c)) {
+            file += (c - '0');
+        } else {
+            // Check if the current square matches the given squareIndex
+            if (rank == 0 && file == 0) {
+                return c;
+            }
+
+            file++;
+        }
+    }
+
+    return '-';
+}
+
+    int calcPieceSquareTables(Position pos) {
+        int val=0;
+        for (size_t i = 0; i < 64; i++)
+        {
+            char p=getPieceOnSquare(pos.get_fen(),i);
+            switch (p)
+            {
+            case 'p':
+                s==0?val-=100:val+=100;
+                s==0?val-=pawnTable[i]:val+=pawnTable[i];
+                break;
+            case 'n':
+                s==0?val-=320:val+=320;
+                s==0?val-=knightTable[i]:val+=knightTable[i];
+                break;
+            case 'b':
+                s==0?val-=330:val+=330;
+                s==0?val-=bishopTable[i]:val+=bishopTable[i];
+                break;
+            case 'r':
+                s==0?val-=500:val+=500;
+                s==0?val-=rookTable[i]:val+=rookTable[i];
+                break;
+            case 'q':
+                s==0?val-=900:val+=900;
+                s==0?val-=queenTable[i]:val+=queenTable[i];
+                break;
+            case 'P':
+                operator!(s)==0?val-=100:val+=100;
+                operator!(s)==0?val-=pawnTable[i]:val+=pawnTable[i];
+                break;
+            case 'N':
+                operator!(s)==0?val-=320:val+=320;
+                operator!(s)==0?val-=knightTable[i]:val+=knightTable[i];
+                break;
+            case 'B':
+                operator!(s)==0?val-=330:val+=330;
+                operator!(s)==0?val-=bishopTable[i]:val+=bishopTable[i];
+                break;
+            case 'R':
+                operator!(s)==0?val-=500:val+=500;
+                operator!(s)==0?val-=rookTable[i]:val+=rookTable[i];
+                break;
+            case 'Q':
+                operator!(s)==0?val-=900:val+=900;
+                operator!(s)==0?val-=queenTable[i]:val+=queenTable[i];
+                break;
+            default:
+                break;
+            }
+        }
+        return val;
+    }
+
+    int evaluateNew(Position pos) {
+        // int val=calcMaterialandSafety(pos);
+        int val =calcPieceSquareTables(pos);
         return val;
     }
 
@@ -527,7 +694,7 @@ int depth=3;
                 pxf.makemove(m);
                 int value=minmax(pxf.get_fen(), dpth - 1, alpha, beta, !maximizingPlayer, m,retvalue,startTime)[1];
                 bestVal = max(bestVal, value);
-                if (m.type()==MoveType::ksc||m.type()==MoveType::qsc) value++;
+                if (m.type()==MoveType::ksc) value+=2; if (m.type()==MoveType::qsc) value+=1;
                 pxf.undomove();
                 alpha = max(alpha, bestVal);
                 if (beta<=alpha)
@@ -588,12 +755,12 @@ int depth=3;
             // if (depth%2==1) {
                 if (val[1]==bestGain) {
                     if (bestGain>0) {
-                        if (val[0]>=bestDepth) {
+                        if (val[0]>bestDepth) {
                             bestMove=m;
                             bestDepth=val[0];
                         }
                     } else {
-                        if (val[0]<=bestDepth) {
+                        if (val[0]<bestDepth) {
                             bestMove=m;
                             bestDepth=val[0];
                         }
@@ -603,6 +770,7 @@ int depth=3;
                     bestGain=val[1];
                     bestDepth=val[0];
                     bestMove=m;
+                    bestDepth=val[0];
                     }
             // } else {
             //     if (val[1]==bestGain) {
@@ -619,6 +787,7 @@ int depth=3;
             
         }
         cout<<bestGain<<endl;
+        if (bestMove.type()==MoveType::ksc||bestMove.type()==MoveType::qsc) rooked=true;
         string bData=bestMove.operator std::string();
         char *ret=new char[bData.length()+1];
         strcpy(ret,bData.c_str());
@@ -627,40 +796,44 @@ int depth=3;
         // return ret;
     }
 
-    // int main() {
-    //     // string s(startFen);
-    //     float **vals=new float*[6]();
-    //     float **vals2=new float*[6]();
-    //     float **vals3=new float*[6]();
-    //     float **vals4=new float*[6]();
-    //     for (int i=0;i<6;i++) {
-    //         vals[i]=new float[64];
-    //         vals2[i]=new float[64];
-    //         vals3[i]=new float[64];
-    //         vals4[i]=new float[64];
-    //     }
+    void enemyRooked() {
+        erooked=true;
+    }
 
-    //     for (int i=0;i<6;i++) {
-    //         for (int s=0;s<64;s++) {
-    //             vals[i][s]=0.999f;
-    //             vals2[i][s]=0.999f;
-    //             vals3[i][s]=0.000f;
-    //             vals4[i][s]=0.000f;
-    //         }
-    //     }
-    //     set_piecePoints(vals,vals2,vals3,vals4);
+    int main() {
+        // string s(startFen);
+        float **vals=new float*[6]();
+        float **vals2=new float*[6]();
+        float **vals3=new float*[6]();
+        float **vals4=new float*[6]();
+        for (int i=0;i<6;i++) {
+            vals[i]=new float[64];
+            vals2[i]=new float[64];
+            vals3[i]=new float[64];
+            vals4[i]=new float[64];
+        }
 
-    //     // cout<<pPoints[0][16];
-    //     char* m=selectBest(ex1);
-    //     // // char* f=(char *)"test.txt";
-    //     // // initValues(f);
-    //     // // Position pos(s);
-    //     // // cout<<s;
-    //     // // char *a=selectBest(startFen);
-    //     // // // if (pos.board[0][0][0]=='r') cout<<"true"<<endl;
-    //     // // // cout<<pos;
-    //     cout<<m;
-    //     return 0;
-    // } 
+        for (int i=0;i<6;i++) {
+            for (int s=0;s<64;s++) {
+                vals[i][s]=0.999f;
+                vals2[i][s]=0.999f;
+                vals3[i][s]=0.000f;
+                vals4[i][s]=0.000f;
+            }
+        }
+        set_piecePoints(vals,vals2,vals3,vals4);
+
+        // cout<<pPoints[0][16];
+        char* m=selectBest(ex1);
+        // // char* f=(char *)"test.txt";
+        // // initValues(f);
+        // // Position pos(s);
+        // // cout<<s;
+        // // char *a=selectBest(startFen);
+        // // // if (pos.board[0][0][0]=='r') cout<<"true"<<endl;
+        // // // cout<<pos;
+        cout<<m;
+        return 0;
+    } 
 
 }

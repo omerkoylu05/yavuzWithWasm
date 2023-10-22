@@ -318,7 +318,6 @@ class Position {
 
     int ep_;
 
-   private:
     void set(const Square sq, const Side s, const Piece p) noexcept {
         colours_[s] |= sq;
         pieces_[p] |= sq;

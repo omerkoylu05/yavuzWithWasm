@@ -665,7 +665,7 @@ function Yavuz(idx,game,color) {
                 clearInterval(this.game.thread);
                 return;
 
-            } else if (this.game.in_draw()||this.game.in_stalemate()||this.game.in_threefold_repetition()) {
+            } else if (this.game.isDraw()||this.game.isStaleMate()||this.game.isThreefoldRepetition()) {
                 this.WINNER=false;
                 this.LOSER=false;
                 this.DRAW=true;

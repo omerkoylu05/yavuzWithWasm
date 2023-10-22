@@ -64,6 +64,12 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeinfo": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "list": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     }
 }
