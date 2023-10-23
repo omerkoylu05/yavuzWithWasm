@@ -99,8 +99,74 @@ let ready=false;
         //   if (text) Module.printErr('[post-exception status] ' + text);
         // };
       };
-    //   Module["wasmMemory"]=new WebAssembly.Memory({"initial":TOTAL_MEMORY/WASM_PAGE_SIZE, "maximum" : TOTAL_MEMORY/WASM_PAGE_SIZE});
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+        var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        // canvas: (function() {
+        //   var canvas = document.getElementById('canvas');
 
+        //   // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+        //   // application robust, you may want to override this behavior before shipping!
+        //   // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+        //   canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+        //   return canvas;
+        // })(),
+        // setStatus: function(text) {
+        //   if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+        //   if (text === Module.setStatus.last.text) return;
+        //   var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+        //   var now = Date.now();
+        //   if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+        //   Module.setStatus.last.time = now;
+        //   Module.setStatus.last.text = text;
+        //   if (m) {
+        //     text = m[1];
+        //     progressElement.value = parseInt(m[2])*100;
+        //     progressElement.max = parseInt(m[4])*100;
+        //     progressElement.hidden = false;
+        //     spinnerElement.hidden = false;
+        //   } else {
+        //     progressElement.value = null;
+        //     progressElement.max = null;
+        //     progressElement.hidden = true;
+        //     if (!text) spinnerElement.style.display = 'none';
+        //   }
+        //   statusElement.innerHTML = text;
+        // },
+        // totalDependencies: 0,
+        // monitorRunDependencies: function(left) {
+        //   this.totalDependencies = Math.max(this.totalDependencies, left);
+        //   Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        // }
+    //   };
+    //   Module.setStatus('Downloading...');
+    //   window.onerror = function(event) {
+        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+        // Module.setStatus('Exception thrown, see JavaScript console');
+        // spinnerElement.style.display = 'none';
+        // Module.setStatus = function(text) {
+        //   if (text) Module.printErr('[post-exception status] ' + text);
+        // };
+      };
+    //   Module["wasmMemory"]=new WebAssembly.Memory({"initial":TOTAL_MEMORY/WASM_PAGE_SIZE, "maximum" : TOTAL_MEMORY/WASM_PAGE_SIZE});
       let POINTS;
       let elo=0;
       let additionPerMove;
@@ -148,7 +214,7 @@ let ready=false;
 
         $.ajax({
             type: "GET",
-            url: "./37.txt",
+            url: "./05102023_38.txt",
             // url:"./BackupYavuz/ready.txt",
             dataType: "html",
             success: function (response,err) {
@@ -160,18 +226,22 @@ let ready=false;
                 let c_developPieces=response.substr(16,response.indexOf("\n")-16);
                 response=response.substr(response.indexOf("C_KINGPROTECTION"),response.length);
                 let c_kingProtection=response.substr(17,response.indexOf("\n")-17);
-                response=response.substr(response.indexOf("C_MATERIALANDSAFETY"),response.length);
-                let c_materialandSafety=response.substr(20,response.indexOf("\n")-20);
+                response=response.substr(response.indexOf("C_MATERIAL"),response.length);
+                let c_material=response.substr(11,response.indexOf("\n")-11);
                 response=response.substr(response.indexOf("C_ROOKANDPAWNMOVEMENT"),response.length);
                 let c_rookandPawnMovement=response.substr(22,response.indexOf("\n")-22);
                 response=response.substr(response.indexOf("CE_KINGACTIVITY"),response.length);
                 let ce_kingActivity=response.substr(16,response.indexOf("\n")-16);
                 response=response.substr(response.indexOf("CE_KINGPROTECTION"),response.length);
                 let ce_kingProtection=response.substr(18,response.indexOf("\n")-18);
-                response=response.substr(response.indexOf("CE_MATERIALANDSAFETY"),response.length);
-                let ce_materialandSafety=response.substr(21,response.indexOf("\n")-21);
+                response=response.substr(response.indexOf("CE_MATERIAL"),response.length);
+                let ce_material=response.substr(12,response.indexOf("\n")-12);
                 response=response.substr(response.indexOf("CE_PASSEDPAWNS"),response.length);
-                let ce_passedPawns=response.substr(15,response.length);
+                let ce_passedPawns=response.substr(15,response.indexOf("\n")-15);
+                response=response.substr(response.indexOf("C_SAFETY"),response.length);
+                let c_safety=response.substr(9,response.indexOf("\n")-9);
+                response=response.substr(response.indexOf("CE_SAFETY"),response.length);
+                let ce_safety=response.substr(9,response.length);
 
                 c_centerControl=parseFloat(c_centerControl);
                 console.log(c_centerControl);
@@ -181,17 +251,22 @@ let ready=false;
                 console.log(c_kingProtection);
                 c_rookandPawnMovement=parseFloat(c_rookandPawnMovement);
                 console.log(c_kingProtection);
-                c_materialandSafety=parseFloat(c_materialandSafety);
-                console.log(c_materialandSafety);
+                c_material=parseFloat(c_material);
+                console.log(c_material);
 
                 ce_kingActivity=parseFloat(ce_kingActivity);
                 console.log(ce_kingActivity);
                 ce_kingProtection=parseFloat(ce_kingProtection);
                 console.log(ce_kingProtection);
-                ce_materialandSafety=parseFloat(ce_materialandSafety);
-                console.log(ce_materialandSafety);
+                ce_material=parseFloat(ce_material);
+                console.log(ce_material);
                 ce_passedPawns=parseFloat(ce_passedPawns);
                 console.log(ce_passedPawns);
+
+                c_safety=parseFloat(c_safety);
+                console.log(c_safety);
+                ce_safety=parseFloat(ce_safety);
+                console.log(ce_safety);
 
                 // response=response.substr(response.indexOf("POINTS"),response.length);
                 // let points=response.substr(7,response.indexOf("\n")-7);
@@ -371,23 +446,24 @@ let ready=false;
                 /**
                  *   void set_Coefs(float centerControl,float developPieces, float kingProtection, float materialandSafety, float rookandPawnMovement,
     float ekingProtection, float ekingActivity, float ematerialandSafety, float epassedPawns) **/
-
-                Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_materialandSafety,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_materialandSafety,ce_passedPawns);
+    // void set_Coefs(float centerControl,float developPieces, float kingProtection, float material, float rookandPawnMovement,
+    // float ekingProtection, float ekingActivity, float ematerial, float epassedPawns, float safety, float esafety) {
+                Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_material,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_material,ce_passedPawns,c_safety,ce_safety);
                 Module._set_depth(5);
                 Module._set_time_limit(300);
                 console.log("ready...");
                 ready=true;
-                $.ajax({
-                    type:"GET",
-                    url:"./memory/memory.json",
-                    dataType:"json",
-                    success:function (response,err) { 
-                        MEMORY=response;
-                        console.log(MEMORY);
-                        Module._set_depth(5);
-                        ready=true;
-                        }
-                    });
+                // $.ajax({
+                //     type:"GET",
+                //     url:"./memory/memory.json",
+                //     dataType:"json",
+                //     success:function (response,err) { 
+                //         MEMORY=response;
+                //         console.log(MEMORY);
+                //         Module._set_depth(5);
+                //         ready=true;
+                //         }
+                //     });
                 // let getpp=Module.ccall("get_points","number",["number"],[5]);
                 // var array = new Float32Array(64)
                 // var pos = getpp / Float32Array.BYTES_PER_ELEMENT;
@@ -1036,7 +1112,7 @@ function Yavuz(idx,game,color) {
                 this.updateMemory();
                 return;
 
-            } else if (this.game.in_draw()||this.game.in_stalemate()||this.game.in_threefold_repetition()) {
+            } else if (this.game.isDraw()||this.game.isStaleMate()||this.game.isThreefoldRepetition()) {
                 this.WINNER=false;
                 this.LOSER=false;
                 this.DRAW=true;
@@ -1087,6 +1163,7 @@ function Yavuz(idx,game,color) {
                     let mdata={from:m.substring(0,2),to:m.substring(2,4)};
                     if (m.charAt(4)!=-1) mdata.promotion=m.charAt(4);
                     let x=this.game.move(mdata);
+                    Module._next();
                     // Module._next();
                     console.log(mdata);
                     console.log(x);
@@ -1137,7 +1214,6 @@ function Yavuz(idx,game,color) {
                 } else {
                     this.checkAndUpdateMem();
                 }
-                Module._next();
             }
         }
         
@@ -1146,6 +1222,9 @@ function Yavuz(idx,game,color) {
     const yavuz= new Yavuz(0,chess,"w");
     // console.log(chess.turn());
     if (chess.turn()==yavuz.color) {
+        let h=chess.history();
+        let m=h[h.length-1];
+        if (m=="o-o"||m=="o-o-o"||m=="O-O"||m=="O-O-O") Module._enemyRooked();
         let i=setInterval(function(){
         console.log("testing...");
         if (ready) {
@@ -1316,6 +1395,7 @@ function Yavuz(idx,game,color) {
         // yavuz.updateWeights();
         let side=0;
         if (yavuz.color=="b") side =1;
+        // Module._set_Coefs(c_centerControl,c_developPieces,c_kingProtection,c_material,c_rookandPawnMovement,ce_kingProtection,ce_kingActivity,ce_material,ce_passedPawns);
         Module._set_side(side);
         if (yavuz.color=="w") yavuz.makeMove();
         board.setPosition(chess.fen());

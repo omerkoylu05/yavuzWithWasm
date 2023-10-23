@@ -788,7 +788,7 @@ function Yavuz(idx,game,color) {
                 clearInterval(this.game.thread);
                 return;
 
-            } else if (this.game.in_draw()||this.game.in_stalemate()||this.game.in_threefold_repetition()||this.fens[this.fen]>5) {
+            } else if (this.game.isDraw()||this.game.isStaleMate()||this.game.isThreefoldRepetition()||this.fens[this.fen]>5) {
                 this.WINNER=false;
                 this.LOSER=false;
                 this.DRAW=true;
@@ -837,7 +837,7 @@ function Yavuz(idx,game,color) {
                     this.memData["move"+(this.countMoves+1).toString()]=m;
                     this.countMoves++;
                     this.game.move(m);
-                    // if (this.game.in_threefold_repetition()) {
+                    // if (this.game.isThreefoldRepetition()) {
                     //     this.game.undo();
                     //     console.log("move changed:",m);
                     //     m=this.selectMove(true);
